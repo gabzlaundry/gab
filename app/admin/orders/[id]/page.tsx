@@ -369,6 +369,12 @@ function OrderDetailsPage() {
                       </dd>
                     </div>
                     <div className="py-3">
+                      <dt className="text-sm font-medium text-gray-500">Contact Number</dt>
+                      <dd className="mt-1 text-sm text-gray-900">
+                        {order.contactNumber || 'Not provided'}
+                      </dd>
+                    </div>
+                    <div className="py-3">
                       <dt className="text-sm font-medium text-gray-500">Requested Date/Time</dt>
                       <dd className="mt-1 text-sm text-gray-900">
                         {new Date(order.requestedDateTime).toLocaleString()}

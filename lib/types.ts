@@ -37,7 +37,8 @@ export enum PaymentMethod {
   ONLINE = 'online',
   POS = 'pos',
   TRANSFER = 'transfer',
-  CASH = 'cash'
+  CASH = 'cash',
+  PAY_ON_PICKUP = 'pay_on_pickup'
 }
 
 export enum PaymentStatus {
@@ -134,6 +135,7 @@ export interface Order extends AppwriteDocument {
   // Address (conditional based on delivery type)
   pickupAddress?: NigerianAddress; // Only for delivery orders
   deliveryAddress?: NigerianAddress; // Only for delivery orders
+  contactNumber?: string; // Contact number for this order (can be different from user's registered phone)
   addressNotes?: string;
   
   // Staff assignment
@@ -266,6 +268,7 @@ export interface BookingRequest {
   requestedDateTime: string; // NEW: Simple date/time request
   pickupAddress?: NigerianAddress; // Only required for delivery
   deliveryAddress?: NigerianAddress; // Only required for delivery
+  contactNumber?: string; // Contact number for delivery (can override user's default phone)
   customerNotes?: string;
   paymentMethod: PaymentMethod;
   paymentReference?: string; // Payment reference for online payments

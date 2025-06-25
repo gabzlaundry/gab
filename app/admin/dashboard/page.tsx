@@ -32,8 +32,8 @@ function AdminDashboardPage() {
 
   const loadDashboardData = async () => {
     try {
-      // Load recent orders
-      const recentOrdersResponse = await databaseService.getOrdersByStatus(OrderStatus.PENDING, 20);
+      // Load recent orders (all statuses)
+      const recentOrdersResponse = await databaseService.getAllOrders(20);
       if (recentOrdersResponse.success && recentOrdersResponse.data) {
         setOrders(recentOrdersResponse.data);
       }
@@ -52,12 +52,13 @@ function AdminDashboardPage() {
       // Load order statistics
       const pendingResponse = await databaseService.getOrdersByStatus(OrderStatus.PENDING);
       const inProgressResponse = await databaseService.getOrdersByStatus(OrderStatus.IN_PROGRESS);
+      const readyResponse = await databaseService.getOrdersByStatus(OrderStatus.READY);
       
       setStats(prev => ({
         ...prev,
         pendingOrders: pendingResponse.data?.length || 0,
         inProgressOrders: inProgressResponse.data?.length || 0,
-        totalOrders: (pendingResponse.data?.length || 0) + (inProgressResponse.data?.length || 0)
+        totalOrders: (pendingResponse.data?.length || 0) + (inProgressResponse.data?.length || 0) + (readyResponse.data?.length || 0)
       }));
 
     } catch (error) {
@@ -161,7 +162,7 @@ function AdminDashboardPage() {
             
             <div className={`hidden lg:flex items-center space-x-6 ${ac.slideIn}`}>
               <Link href="/admin/orders" className="text-gray-600 hover:text-blue-600 font-medium transition-colors duration-200">Orders</Link>
-              <Link href="/admin/customers" className="text-gray-600 hover:text-blue-600 font-medium transition-colors duration-200">Customers</Link>
+              {/* <Link href="/admin/customers" className="text-gray-600 hover:text-blue-600 font-medium transition-colors duration-200">Customers</Link> */}
               <Link href="/admin/services/manage" className="text-gray-600 hover:text-blue-600 font-medium transition-colors duration-200">Services</Link>
             </div>
 
@@ -390,7 +391,7 @@ function AdminDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">Recent Orders</h2>
-                <p className="text-sm text-gray-600 mt-1">Latest customer orders requiring attention</p>
+                <p className="text-sm text-gray-600 mt-1">Latest customer orders across all statuses</p>
               </div>
               <Link href="/admin/orders" className="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors">
                 View all
@@ -458,19 +459,17 @@ function AdminDashboardPage() {
                           {order.status.replace('_', ' ')}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-gray-900">
-                          {formatNairaFromKobo(order.finalAmount)}
-                        </p>
-                        <Link
-                          href={`/admin/orders/${order.$id}`}
-                          className="inline-flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
-                        >
-                          View Details
-                          <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </Link>
+                      
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <div className="flex items-center justify-between text-xs text-gray-600">
+                          <span>₦{formatNairaFromKobo(order.finalAmount)}</span>
+                          <Link 
+                            href={`/admin/orders/${order.$id}`}
+                            className="text-blue-600 hover:text-blue-700 font-medium"
+                          >
+                            View Details →
+                          </Link>
+                        </div>
                       </div>
                     </div>
 
@@ -489,26 +488,20 @@ function AdminDashboardPage() {
                               year: 'numeric',
                               month: 'short',
                               day: 'numeric'
-                            })}
-                          </p>
-                          <p className="text-sm font-medium text-gray-900">
-                            {formatNairaFromKobo(order.finalAmount)}
+                            })} • ₦{formatNairaFromKobo(order.finalAmount)}
                           </p>
                         </div>
                       </div>
                       
-                      <div className="flex items-center space-x-3">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium capitalize border ${getStatusColor(order.status)}`}>
+                      <div className="flex items-center space-x-4">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium capitalize border ${getStatusColor(order.status)}`}>
                           {order.status.replace('_', ' ')}
                         </span>
-                        <Link
+                        <Link 
                           href={`/admin/orders/${order.$id}`}
-                          className="inline-flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors group-hover:translate-x-1 duration-300"
+                          className="text-blue-600 hover:text-blue-700 font-medium text-sm"
                         >
-                          View
-                          <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
+                          View Details →
                         </Link>
                       </div>
                     </div>
@@ -523,4 +516,4 @@ function AdminDashboardPage() {
   );
 }
 
-export default withAuth(AdminDashboardPage);
+export default withAuth(AdminDashboardPage, true);

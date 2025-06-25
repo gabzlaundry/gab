@@ -298,7 +298,6 @@ function OrderDetailsContent({ params }: OrderDetailsPageProps) {
                 </svg>
               </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-emerald-900">Payment Successful!</h3>
                   <p className="text-sm text-emerald-700">
                     {order?.paymentStatus === 'pending' 
                       ? 'Updating order status...' 
@@ -469,6 +468,21 @@ function OrderDetailsContent({ params }: OrderDetailsPageProps) {
                     ) : 'Not specified'}
                   </p>
                   </div>
+                </div>
+                
+                {/* Contact Number */}
+                <div className="mt-6 bg-gradient-to-r from-purple-50 to-purple-100 rounded-2xl p-6">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                    </div>
+                    <h3 className="font-semibold text-purple-900 text-lg">Contact Number</h3>
+                  </div>
+                  <p className="text-purple-800 leading-relaxed">
+                    {order.contactNumber || 'Not provided'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -661,7 +675,7 @@ function OrderDetailsContent({ params }: OrderDetailsPageProps) {
                 </a>
                 
                 <a 
-                  href="https://wa.me/234800GABZLAG" 
+                  href="https://wa.me/2349137435555" 
                   className="flex items-center justify-center bg-green-500 hover:bg-green-600 text-white font-medium py-3 px-4 rounded-xl transition-all duration-300 hover:scale-105 shadow-sm hover:shadow-md"
                   target="_blank"
                   rel="noopener noreferrer"

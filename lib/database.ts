@@ -356,6 +356,7 @@ export class DatabaseService {
         finalAmount: totalAmount,
         deliveryType: bookingData.deliveryType,
         requestedDateTime: bookingData.requestedDateTime,
+        contactNumber: bookingData.contactNumber,
         customerNotes: bookingData.customerNotes,
         // Convert orderHistory to JSON string for Appwrite storage
         orderHistory: JSON.stringify([{
@@ -629,6 +630,30 @@ export class DatabaseService {
       return {
         success: false,
         error: 'Failed to fetch orders by status'
+      };
+    }
+  }
+
+  // Get all orders (admin only)
+  async getAllOrders(limit: number = 100): Promise<ApiResponse<Order[]>> {
+    try {
+      const response = await databases.listDocuments(
+        appwriteConfig.databaseId,
+        appwriteConfig.collections.orders,
+        [
+          Query.orderDesc('$createdAt'),
+          Query.limit(limit)
+        ]
+      );
+
+      return {
+        success: true,
+        data: response.documents.map(o => this._parseOrderAddresses(o as Order))
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: 'Failed to fetch all orders'
       };
     }
   }

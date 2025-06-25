@@ -102,7 +102,7 @@ function PaymentCallbackContent() {
             if (orderId) {
               setTimeout(() => {
                 router.push(`/receipt/${orderId}?payment=success&reference=${reference}`);
-              }, 3000);
+              }, 10000);
             }
           } else {
             // Payment failed

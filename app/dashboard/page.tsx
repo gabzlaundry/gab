@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/context/AuthContext';
 import { databaseService } from '@/lib/database';
-import { Order, OrderStatus, PaymentStatus } from '@/lib/types';
+import { Order, OrderStatus, PaymentStatus, PaymentMethod } from '@/lib/types';
 import { formatNairaFromKobo } from '@/lib/validations';
 import { Navbar } from '@/components/ui/navbar';
 import { responsiveClasses as rc, animationClasses as ac } from '@/lib/animations';
@@ -140,6 +140,30 @@ function DashboardContent() {
   const handleLogout = async () => {
     await logout();
     router.push('/');
+  };
+
+  const handlePayNow = async (orderId: string) => {
+    try {
+      const response = await fetch('/api/payment/ready-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ orderId, customerId: user?.$id }),
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.data?.authorizationUrl) {
+        // Redirect to Paystack payment page
+        window.location.href = result.data.authorizationUrl;
+      } else {
+        alert(result.error || 'Failed to initialize payment');
+      }
+    } catch (error) {
+      console.error('Failed to initialize payment:', error);
+      alert('Failed to initialize payment');
+    }
   };
 
   if (!isAuthenticated || !user) {
@@ -303,7 +327,7 @@ function DashboardContent() {
               </div>
               <div>
                 <h3 className="font-semibold text-lg text-gray-900">Contact Support</h3>
-                <p className="text-gray-600 text-sm">+234 800 000 0000</p>
+                <p className="text-gray-600 text-sm">+234 913 743 5555</p>
               </div>
             </div>
           </div>
@@ -401,15 +425,25 @@ function DashboardContent() {
                         <p className="text-sm font-semibold text-gray-900">
                           {formatNairaFromKobo(order.finalAmount)}
                         </p>
-                        <Link
-                          href={`/orders/${order.$id}`}
-                          className="inline-flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
-                        >
-                          View Details
-                          <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </Link>
+                        <div className="flex items-center space-x-2">
+                          {order.status === OrderStatus.READY && order.paymentMethod === PaymentMethod.PAY_ON_PICKUP && (
+                            <button
+                              onClick={() => handlePayNow(order.$id)}
+                              className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white text-xs font-medium rounded-lg transition-all duration-200"
+                            >
+                              Pay Now
+                            </button>
+                          )}
+                          <Link
+                            href={`/orders/${order.$id}`}
+                            className="inline-flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
+                          >
+                            View Details
+                            <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </Link>
+                        </div>
                       </div>
                     </div>
 
@@ -440,6 +474,14 @@ function DashboardContent() {
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium capitalize border ${getStatusColor(order.status)}`}>
                         {order.status.replace('_', ' ')}
                       </span>
+                        {order.status === OrderStatus.READY && order.paymentMethod === PaymentMethod.PAY_ON_PICKUP && (
+                          <button
+                            onClick={() => handlePayNow(order.$id)}
+                            className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white text-sm font-medium rounded-lg transition-all duration-200 transform hover:-translate-y-0.5"
+                          >
+                            Pay Now
+                          </button>
+                        )}
                       <Link
                         href={`/orders/${order.$id}`}
                           className="inline-flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors group-hover:translate-x-1 duration-300"

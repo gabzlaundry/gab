@@ -422,7 +422,7 @@ function ReceiptPageContent() {
             </a>
             
             <a 
-              href="https://wa.me/234800GABZLAG" 
+              href="https://wa.me/2349137435555" 
               className="flex items-center justify-center bg-green-500 hover:bg-green-600 text-white font-medium py-3 px-4 rounded-xl transition-all duration-300 hover:scale-105 shadow-sm hover:shadow-md"
               target="_blank"
               rel="noopener noreferrer"

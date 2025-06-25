@@ -54,6 +54,13 @@ function BookPageContent() {
     }
   }, [isAuthenticated, router, searchParams]);
 
+  // Initialize contact number with user's phone when user data is available
+  useEffect(() => {
+    if (user?.phone && !bookingData.contactNumber) {
+      setBookingData(prev => ({ ...prev, contactNumber: user.phone }));
+    }
+  }, [user?.phone, bookingData.contactNumber]);
+
   const loadServices = async () => {
     try {
       const response = await databaseService.getActiveServices();
@@ -130,6 +137,7 @@ function BookPageContent() {
         deliveryType: deliveryType,
         requestedDateTime: bookingData.requestedDateTime!,
         paymentMethod: bookingData.paymentMethod!,
+        contactNumber: bookingData.contactNumber,
         customerNotes: bookingData.customerNotes,
         ...(deliveryType === DeliveryType.DELIVERY && {
           pickupAddress: bookingData.pickupAddress,
@@ -166,6 +174,7 @@ function BookPageContent() {
         deliveryType: deliveryType,
         requestedDateTime: bookingData.requestedDateTime!,
         paymentMethod: bookingData.paymentMethod!,
+        contactNumber: bookingData.contactNumber,
         customerNotes: bookingData.customerNotes,
         ...(deliveryType === DeliveryType.DELIVERY && {
           pickupAddress: bookingData.pickupAddress,
@@ -707,13 +716,14 @@ function BookPageContent() {
                     </label>
                     <input
                       type="tel"
-                      value={user?.phone || ''}
-                      disabled
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
+                      value={bookingData.contactNumber || user?.phone || ''}
+                      onChange={(e) => setBookingData(prev => ({ ...prev, contactNumber: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="+234..."
+                      required
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      Using your registered phone number
+                      Default: {user?.phone || 'Not set'} • You can change this for this order
                     </p>
                   </div>
                 </div>
@@ -874,26 +884,33 @@ function BookPageContent() {
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <div className="font-medium">Pay Online</div>
+                    <div className="font-medium">Pay Now</div>
                     <div className="text-sm text-gray-500 mt-1">
-                      Secure payment with Paystack
+                      Pay immediately with Paystack
                     </div>
                   </button>
                   
-                  {/* <button
-                    onClick={() => setBookingData(prev => ({ ...prev, paymentMethod: PaymentMethod.TRANSFER }))}
+                  <button
+                    onClick={() => setBookingData(prev => ({ ...prev, paymentMethod: PaymentMethod.PAY_ON_PICKUP }))}
                     className={`p-4 text-left border rounded-lg transition-colors ${
-                      bookingData.paymentMethod === PaymentMethod.TRANSFER
+                      bookingData.paymentMethod === PaymentMethod.PAY_ON_PICKUP
                         ? 'border-blue-500 bg-blue-50 text-blue-700'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <div className="font-medium">Bank Transfer</div>
+                    <div className="font-medium">Pay on Pickup</div>
                     <div className="text-sm text-gray-500 mt-1">
-                      Transfer to our account
+                      Pay online when order is ready
                     </div>
-                  </button> */}
+                  </button>
                 </div>
+                {bookingData.paymentMethod === PaymentMethod.PAY_ON_PICKUP && (
+                  <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                    <p className="text-sm text-orange-800">
+                      <strong>Pay on Pickup:</strong> We'll notify you when your order is ready.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -914,16 +931,16 @@ function BookPageContent() {
                     if (orderId) {
                       // Now initialize payment with the real order ID
                       const paymentData = {
-                    email: user?.email || '',
+                        email: user?.email || '',
                         amount: calculateTotal(),
-                    currency: 'NGN',
-                    metadata: {
+                        currency: 'NGN',
+                        metadata: {
                           orderId: orderId,
-                      customerId: user?.$id || '',
-                      customerName: user?.name || '',
-                      phoneNumber: user?.phone || ''
-                    },
-                    callback_url: `${window.location.origin}/payment/callback`
+                          customerId: user?.$id || '',
+                          customerName: user?.name || '',
+                          phoneNumber: user?.phone || ''
+                        },
+                        callback_url: `${window.location.origin}/payment/callback`
                       };
 
                       try {
@@ -951,15 +968,15 @@ function BookPageContent() {
                   disabled={!canSubmit || isSubmitting}
                   className="bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-8 py-3 rounded-lg font-medium transition-colors"
                 >
-                  {isSubmitting ? 'Creating Order...' : `Pay ${formatNairaFromKobo(calculateTotal())}`}
+                  {isSubmitting ? 'Creating Order...' : `Pay Now ${formatNairaFromKobo(calculateTotal())}`}
                 </button>
               ) : (
                 <button
                   onClick={() => handleSubmit()}
                   disabled={!canSubmit || isSubmitting}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-8 py-3 rounded-lg font-medium transition-colors"
+                  className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-8 py-3 rounded-lg font-medium transition-colors"
                 >
-                  {isSubmitting ? 'Creating Order...' : 'Confirm Order'}
+                  {isSubmitting ? 'Creating Order...' : 'Confirm Order - Pay Later'}
                 </button>
               )}
             </div>

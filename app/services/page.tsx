@@ -26,8 +26,18 @@ export default function ServicesPage() {
   ];
 
   const lagosAreas = [
-    'Lagos Island', 'Victoria Island', 'Ikoyi', 'Lekki', 'Ikeja', 
-    'Surulere', 'Yaba', 'Gbagada', 'Magodo', 'Ojodu'
+    'Ajah',
+'Abraham Adesanya',
+'Sangotedo', 
+'United Estate', 
+'GRA',
+'Fara park Estate', 
+'Thomas Estate',
+'Ibeju lekki',
+'Awoyaya',
+'Ogidan',
+'Eleko', 
+'Dangote refinery','Lagos Island', 'Victoria Island', 'Ikoyi', 'Lekki', 'Ikeja', 'Surulere', 'Yaba', 'Gbagada',
   ];
 
   useEffect(() => {

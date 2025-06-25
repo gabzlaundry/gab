@@ -189,7 +189,7 @@ export default function LoginPage() {
           {/* Lagos specific info */}
           <div className="mt-6 text-center">
             <p className="text-xs text-gray-500">
-              Serving Lagos State: Lagos Island, Victoria Island, Ikoyi, Lekki, Ikeja, Surulere
+              Serving Lagos State: Ajah, Abraham Adesanya, Sangotedo, United Estate, GRA, Fara park Estate, Thomas Estate, Ibeju lekki, Awoyaya, Ogidan, Eleko, Dangote refinery, Lagos Island, Lagos Mainland, Ikeja,  Island, Lekki, Surulere, Yaba, Ikoyi, ajah,sangotedo
             </p>
           </div>
         </div>

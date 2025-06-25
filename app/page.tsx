@@ -537,14 +537,15 @@ export default function HomePage() {
                 across Lagos State.
               </p>
               <p className="text-gray-400 text-sm md:text-base">
-                📞 +234 800 000 0000<br />
-                📧 hello@gabzlaundromat.com
+                📞 +234 913 743 5555<br />
+                  📧 gabzlaundromatt@gmail.com
               </p>
             </div>
 
             <div>
               <h4 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Services</h4>
               <ul className="space-y-1.5 md:space-y-2 text-gray-400 text-sm md:text-base">
+                <li>laundromat</li>
                 <li>Wash & Fold</li>
                 <li>Dry Cleaning</li>
                 <li>Ironing Service</li>

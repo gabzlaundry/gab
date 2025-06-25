@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/context/AuthContext';
 import { databaseService } from '@/lib/database';
-import { Order, OrderStatus } from '@/lib/types';
+import { Order, OrderStatus, PaymentMethod } from '@/lib/types';
 import { formatNairaFromKobo } from '@/lib/validations';
 import { withAuth } from '@/lib/context/AuthContext';
 import { responsiveClasses as rc, animationClasses as ac } from '@/lib/animations';
@@ -31,27 +31,14 @@ function AdminOrdersPage() {
 
   const loadOrders = async () => {
     try {
-      // Load all orders (you might want to paginate this in a real app)
-      const responses = await Promise.all([
-        databaseService.getOrdersByStatus(OrderStatus.PENDING),
-        databaseService.getOrdersByStatus(OrderStatus.PICKED_UP),
-        databaseService.getOrdersByStatus(OrderStatus.IN_PROGRESS),
-        databaseService.getOrdersByStatus(OrderStatus.READY),
-        databaseService.getOrdersByStatus(OrderStatus.DELIVERED),
-        databaseService.getOrdersByStatus(OrderStatus.CANCELLED)
-      ]);
-
-      const allOrders: Order[] = [];
-      responses.forEach(response => {
-        if (response.success && response.data) {
-          allOrders.push(...response.data);
-        }
-      });
-
-      // Sort by creation date (newest first)
-      allOrders.sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime());
+      // Load all orders directly
+      const response = await databaseService.getAllOrders(200); // Increased limit for admin view
       
-      setOrders(allOrders);
+      if (response.success && response.data) {
+        setOrders(response.data);
+      } else {
+        console.error('Failed to load orders:', response.error);
+      }
     } catch (error) {
       console.error('Failed to load orders:', error);
     } finally {
@@ -123,6 +110,8 @@ function AdminOrdersPage() {
       console.error('Failed to update order status:', error);
     }
   };
+
+
 
   const getStatusColor = (status: OrderStatus) => {
     switch (status) {
