@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { paymentService } from '@/lib/payment';
 import { PaymentData } from '@/lib/payment';
+import { toast } from 'sonner';
 
 interface PaystackPaymentProps {
   paymentData: PaymentData;
@@ -49,7 +50,7 @@ export default function PaystackPayment({
 
   const handlePayment = async () => {
     if (!scriptLoaded || !window.PaystackPop) {
-      alert('Payment system is loading. Please try again in a moment.');
+      toast.error('Payment system is loading. Please try again in a moment.');
       return;
     }
 
@@ -83,7 +84,7 @@ export default function PaystackPayment({
     } catch (error: any) {
       console.error('Payment initialization error:', error);
       setIsLoading(false);
-      alert(error.message || 'Failed to start payment process');
+      toast.error(error.message || 'Failed to start payment process');
     }
   };
 

@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { Order, OrderItem, Service, DeliveryType } from '@/lib/types';
 import { formatNairaFromKobo } from '@/lib/validations';
 import html2pdf from 'html2pdf.js';
+import { toast } from 'sonner';
 
 interface OrderReceiptProps {
   order: Order;
@@ -82,7 +83,7 @@ export default function OrderReceipt({
         .save()
         .catch((err: Error) => {
           console.error('PDF download error:', err);
-          alert('Failed to generate PDF. Please check the console for errors.');
+          toast.error('Failed to generate PDF. Please check the console for errors.');
         })
         .finally(() => {
           document.head.removeChild(style);

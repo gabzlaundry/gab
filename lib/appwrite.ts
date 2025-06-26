@@ -26,7 +26,7 @@ export const appwriteConfig = {
     adminUsers: process.env.NEXT_PUBLIC_APPWRITE_ADMIN_USERS_COLLECTION_ID || 'admin-users',
   },
   businessConfig: {
-    phone: process.env.NEXT_PUBLIC_BUSINESS_PHONE || '+2348000000000',
+    phone: process.env.NEXT_PUBLIC_BUSINESS_PHONE || '+23491374355550',
     serviceAreas: (process.env.NEXT_PUBLIC_SERVICE_AREAS || '').split(','),
     businessHours: {
       start: process.env.NEXT_PUBLIC_BUSINESS_HOURS_START || '08:00',

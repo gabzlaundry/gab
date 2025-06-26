@@ -9,6 +9,7 @@ import { Order, OrderStatus, PaymentStatus, PaymentMethod } from '@/lib/types';
 import { formatNairaFromKobo } from '@/lib/validations';
 import { Navbar } from '@/components/ui/navbar';
 import { responsiveClasses as rc, animationClasses as ac } from '@/lib/animations';
+import { toast } from 'sonner';
 
 function DashboardContent() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -158,11 +159,11 @@ function DashboardContent() {
         // Redirect to Paystack payment page
         window.location.href = result.data.authorizationUrl;
       } else {
-        alert(result.error || 'Failed to initialize payment');
+        toast.error(result.error || 'Failed to initialize payment');
       }
     } catch (error) {
       console.error('Failed to initialize payment:', error);
-      alert('Failed to initialize payment');
+      toast.error('Failed to initialize payment');
     }
   };
 

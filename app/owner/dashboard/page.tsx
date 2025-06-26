@@ -10,6 +10,7 @@ import { authService } from '@/lib/auth';
 import { responsiveClasses as rc, animationClasses as ac } from '@/lib/animations';
 import Link from 'next/link';
 import { Navbar } from '@/components/ui/navbar';
+import { toast } from 'sonner';
 
 // Interface for customer with calculated stats
 interface CustomerWithStats extends User {
@@ -69,6 +70,14 @@ export default function OwnerDashboard() {
     isActive: true
   });
 
+  // Customer details states
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerWithStats | null>(null);
+  const [showCustomerDetails, setShowCustomerDetails] = useState(false);
+  
+  // Staff details states
+  const [selectedStaff, setSelectedStaff] = useState<StaffWithStats | null>(null);
+  const [showStaffDetails, setShowStaffDetails] = useState(false);
+
   // Staff registration states
   const [showCreateStaff, setShowCreateStaff] = useState(false);
   const [staffFormData, setStaffFormData] = useState({
@@ -89,6 +98,11 @@ export default function OwnerDashboard() {
     workingDays: [] as string[]
   });
 
+  // Staff deletion states
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [staffToDelete, setStaffToDelete] = useState<StaffWithStats | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const availablePermissions = [
     'view_orders',
     'manage_orders',
@@ -104,6 +118,29 @@ export default function OwnerDashboard() {
     'monday', 'tuesday', 'wednesday', 'thursday', 
     'friday', 'saturday', 'sunday'
   ];
+
+  const lagosAreas = [
+    'Ajah', 'Abraham Adesanya', 'Sangotedo', 'United Estate', 'GRA', 'Fara park Estate', 
+    'Thomas Estate', 'Ibeju lekki', 'Awoyaya', 'Ogidan', 'Eleko', 'Dangote refinery', 
+    'Lagos Island', 'Lagos Mainland', 'Ikeja', 'Victoria Island', 'Lekki', 'Surulere', 
+    'Yaba', 'Ikoyi'
+  ];
+
+  // Helper function to get service type icons
+  const getServiceIcon = (type: ServiceType): string => {
+    switch (type) {
+      case ServiceType.WASH_AND_FOLD:
+        return '🧺';
+      case ServiceType.DRY_CLEANING:
+        return '👔';
+      case ServiceType.IRONING:
+        return '🔥';
+      case ServiceType.LAUNDROMAT:
+        return '⚡';
+      default:
+        return '🧺';
+    }
+  };
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -150,10 +187,20 @@ export default function OwnerDashboard() {
 
   const loadCustomersData = async () => {
     try {
-      const customersResponse = await databaseService.getAllUsers();
+      console.log('🔄 Loading customers data...');
+      
+      // Increase limit to get more users and add debugging
+      const customersResponse = await databaseService.getAllUsers(500); // Increased from default 100
+      console.log('👥 Customers response:', {
+        success: customersResponse.success,
+        dataLength: customersResponse.data?.length || 0,
+        error: customersResponse.error || 'none'
+      });
+      
       if (customersResponse.success && customersResponse.data) {
         // All users in the users collection are customers by default
         const customerUsers = customersResponse.data;
+        console.log('📋 Raw customer users:', customerUsers.length);
         
         // Get order statistics for each customer
         const customersWithStats = await Promise.all(
@@ -192,14 +239,30 @@ export default function OwnerDashboard() {
           })
         );
         
+        console.log('📊 Customers with stats:', {
+          total: customersWithStats.length,
+          active: customersWithStats.filter(c => c.status === 'active').length,
+          inactive: customersWithStats.filter(c => c.status === 'inactive').length,
+          sampleCustomers: customersWithStats.slice(0, 3).map(c => ({
+            name: `${c.firstName} ${c.lastName}`,
+            email: c.email,
+            totalOrders: c.totalOrders,
+            status: c.status
+          }))
+        });
+        
         setCustomers(customersWithStats);
         
         // Update stats
         const activeCustomers = customersWithStats.filter(c => c.status === 'active').length;
         setStats(prev => ({ ...prev, activeCustomers }));
+      } else {
+        console.error('❌ Failed to load customers:', customersResponse.error);
+        toast.error('Failed to load customers data');
       }
     } catch (error) {
-      console.error('Failed to load customers:', error);
+      console.error('❌ Failed to load customers:', error);
+      toast.error('Failed to load customers');
     }
   };
 
@@ -349,9 +412,7 @@ export default function OwnerDashboard() {
     }
   };
 
-  const lagosAreas = [
-    'Ajah', 'Abraham Adesanya', 'Sangotedo', 'United Estate', 'GRA', 'Fara park Estate', 'Thomas Estate', 'Ibeju lekki', 'Awoyaya', 'Ogidan', 'Eleko', 'Dangote refinery', 'Lagos Island', 'Lagos Mainland', 'Ikeja', 'Victoria Island', 'Lekki', 'Surulere', 'Yaba', 'Ikoyi', 'ajah', 'sangotedo'    
-  ];
+
 
   const resetServiceForm = () => {
     setServiceFormData({
@@ -401,23 +462,23 @@ export default function OwnerDashboard() {
         if (response.success) {
           await loadServicesData();
           resetServiceForm();
-          alert('Service updated successfully!');
+          toast.success('Service updated successfully!');
         } else {
-          alert(`Failed to update service: ${response.error}`);
+          toast.error(`Failed to update service: ${response.error}`);
         }
       } else {
         const response = await databaseService.createService(serviceData);
         if (response.success) {
           await loadServicesData();
           resetServiceForm();
-          alert('Service created successfully!');
+          toast.success('Service created successfully!');
         } else {
-          alert(`Failed to create service: ${response.error}`);
+          toast.error(`Failed to create service: ${response.error}`);
         }
       }
     } catch (error) {
       console.error('Service operation failed:', error);
-      alert('Failed to save service');
+      toast.error('Failed to save service');
     } finally {
       setIsLoading(false);
     }
@@ -451,11 +512,11 @@ export default function OwnerDashboard() {
       if (response.success) {
         await loadServicesData();
       } else {
-        alert(`Failed to update service status: ${response.error}`);
+        toast.error(`Failed to update service status: ${response.error}`);
       }
     } catch (error) {
       console.error('Failed to toggle service status:', error);
-      alert('Failed to update service status');
+      toast.error('Failed to update service status');
     }
   };
 
@@ -483,24 +544,10 @@ export default function OwnerDashboard() {
 
   const handleCreateStaff = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+
     try {
-      setIsLoading(true);
-
-      // Validation
-      if (staffFormData.permissions.length === 0) {
-        alert('Please select at least one permission');
-        return;
-      }
-      if (staffFormData.assignedAreas.length === 0) {
-        alert('Please select at least one assigned area');
-        return;
-      }
-      if (staffFormData.workingDays.length === 0) {
-        alert('Please select at least one working day');
-        return;
-      }
-
-      const response = await authService.registerAdmin({
+      const staffData = {
         email: staffFormData.email,
         password: staffFormData.password,
         firstName: staffFormData.firstName,
@@ -513,18 +560,20 @@ export default function OwnerDashboard() {
         workingDays: staffFormData.workingDays,
         employeeId: staffFormData.employeeId,
         hireDate: staffFormData.hireDate
-      });
+      };
 
+      const response = await authService.registerAdmin(staffData);
+      
       if (response.success) {
-        await loadStaffData();
+        toast.success('Staff member created successfully! They can now login at /admin/login');
         resetStaffForm();
-        alert('Staff member created successfully! They can now login at /admin/login');
+        loadStaffData(); // Reload staff data
       } else {
-        alert(`Failed to create staff member: ${response.error}`);
+        toast.error(response.error || 'Failed to create staff member');
       }
     } catch (error) {
-      console.error('Staff creation failed:', error);
-      alert('Failed to create staff member');
+      console.error('Error creating staff:', error);
+      toast.error('Failed to create staff member');
     } finally {
       setIsLoading(false);
     }
@@ -533,6 +582,39 @@ export default function OwnerDashboard() {
   const handleLogout = async () => {
     await logout();
     router.push('/owner/login');
+  };
+
+  const handleDeleteStaff = async () => {
+    if (!staffToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await databaseService.deleteAdminUser(staffToDelete.$id);
+      
+      if (response.success) {
+        toast.success('Staff member deleted successfully');
+        setShowDeleteConfirmation(false);
+        setStaffToDelete(null);
+        loadStaffData(); // Reload staff data
+      } else {
+        toast.error(response.error || 'Failed to delete staff member');
+      }
+    } catch (error) {
+      console.error('Error deleting staff:', error);
+      toast.error('Failed to delete staff member');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const confirmDeleteStaff = (staff: StaffWithStats) => {
+    setStaffToDelete(staff);
+    setShowDeleteConfirmation(true);
+  };
+
+  const cancelDeleteStaff = () => {
+    setShowDeleteConfirmation(false);
+    setStaffToDelete(null);
   };
 
   if (isLoading) {
@@ -810,12 +892,12 @@ export default function OwnerDashboard() {
                         {customer.firstName?.charAt(0)}{customer.lastName?.charAt(0)}
                       </span>
                     </div>
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {customer.firstName} {customer.lastName}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Joined: {new Date(customer.$createdAt).toLocaleDateString()}
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {customer.firstName} {customer.lastName}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      Joined: {new Date(customer.$createdAt).toLocaleDateString()}
                       </div>
                     </div>
                   </div>
@@ -828,7 +910,7 @@ export default function OwnerDashboard() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    {customer.totalOrders}
+                  {customer.totalOrders}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
@@ -848,12 +930,15 @@ export default function OwnerDashboard() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <button 
-                    onClick={() => router.push(`/admin/customers/${customer.$id}`)}
+                    onClick={() => {
+                      setSelectedCustomer(customer);
+                      setShowCustomerDetails(true);
+                    }}
                     className="text-indigo-600 hover:text-indigo-900 mr-3 transition-colors"
                   >
                     View
                   </button>
-                  <button className="text-green-600 hover:text-green-900 transition-colors">Contact</button>
+                  
                 </td>
               </tr>
             ))}
@@ -1261,8 +1346,23 @@ export default function OwnerDashboard() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button className="text-indigo-600 hover:text-indigo-900 mr-3">Edit</button>
-                      <button className="text-green-600 hover:text-green-900">Contact</button>
+                      <div className="flex items-center space-x-3">
+                        <button 
+                          onClick={() => {
+                            setSelectedStaff(member);
+                            setShowStaffDetails(true);
+                          }}
+                          className="text-indigo-600 hover:text-indigo-900 transition-colors"
+                        >
+                          View
+                        </button>
+                        <button 
+                          onClick={() => confirmDeleteStaff(member)}
+                          className="text-red-600 hover:text-red-900 transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -1285,20 +1385,20 @@ export default function OwnerDashboard() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
               </div>
-              <div>
+          <div>
                 <h3 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Services Management</h3>
                 <p className="text-sm text-gray-600">Manage your laundry services and pricing</p>
               </div>
-            </div>
-            <button
-              onClick={() => setShowCreateService(true)}
+          </div>
+          <button
+            onClick={() => setShowCreateService(true)}
               className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
-            >
+          >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
               Add Service
-            </button>
+          </button>
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -1325,8 +1425,8 @@ export default function OwnerDashboard() {
                         </span>
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{service.name}</div>
-                        <div className="text-sm text-gray-500">{service.description}</div>
+                    <div className="text-sm font-medium text-gray-900">{service.name}</div>
+                    <div className="text-sm text-gray-500">{service.description}</div>
                       </div>
                     </div>
                   </td>
@@ -1410,8 +1510,8 @@ export default function OwnerDashboard() {
               <span className={`text-xs md:text-sm text-gray-500 hidden sm:block ${ac.fadeIn}`}>
                 Business Dashboard
               </span>
-            </div>
-            
+      </div>
+
             <div className={`hidden lg:flex items-center space-x-6 ${ac.slideIn}`}>
               <button 
                 onClick={() => setActiveTab('overview')}
@@ -1531,23 +1631,23 @@ export default function OwnerDashboard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
-        {/* Enhanced Header */}
+          {/* Enhanced Header */}
         <div className={`mb-8 ${ac.fadeIn}`}>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-            <div>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+              <div>
               <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
                 Owner Dashboard 👑
-              </h1>
+                    </h1>
               <p className="text-gray-600 text-lg">
                 Welcome back, {user?.name}! Here's your business overview
               </p>
-            </div>
-            <div className="mt-4 md:mt-0">
-              <div className="flex items-center space-x-3">
-                <div className="hidden md:flex items-center space-x-2 bg-white/80 backdrop-blur-sm rounded-xl px-4 py-2 shadow-sm">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm font-medium text-gray-700">System Online</span>
-                </div>
+              </div>
+              <div className="mt-4 md:mt-0">
+                <div className="flex items-center space-x-3">
+                  <div className="hidden md:flex items-center space-x-2 bg-white/80 backdrop-blur-sm rounded-xl px-4 py-2 shadow-sm">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-medium text-gray-700">System Online</span>
+                  </div>
               </div>
             </div>
           </div>
@@ -1558,6 +1658,622 @@ export default function OwnerDashboard() {
         {activeTab === 'customers' && renderCustomers()}
         {activeTab === 'staff' && renderStaff()}
         {activeTab === 'services' && renderServices()}
+
+        {/* Service Creation Modal */}
+        {showCreateService && (
+          <div className="fixed inset-0 bg-gray-900/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className={`bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden ${ac.scaleIn}`}>
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl md:text-2xl font-bold text-white">
+                    {editingService ? '✏️ Edit Service' : '➕ Create New Service'}
+                  </h2>
+                  <button
+                    onClick={resetServiceForm}
+                    className="text-blue-200 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-all duration-200"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+                <form onSubmit={handleCreateService} className="space-y-6">
+                  {/* Basic Info Section */}
+                  <div className="bg-gradient-to-r from-gray-50 to-blue-50/50 rounded-xl p-4 md:p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                      <span className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                        ℹ️
+                      </span>
+                      Basic Information
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Service Name *</label>
+                        <input
+                          type="text"
+                          value={serviceFormData.name}
+                          onChange={(e) => setServiceFormData(prev => ({ ...prev, name: e.target.value }))}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                          placeholder="e.g., Premium Wash & Fold"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Service Type *</label>
+                        <div className="relative">
+                          <select
+                            value={serviceFormData.type}
+                            onChange={(e) => setServiceFormData(prev => ({ ...prev, type: e.target.value as ServiceType }))}
+                            className="w-full appearance-none px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white"
+                            required
+                          >
+                            {Object.values(ServiceType).map((type) => (
+                              <option key={type} value={type}>
+                                {getServiceIcon(type)} {type.replace('_', ' ')}
+                              </option>
+                            ))}
+                          </select>
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Description *</label>
+                      <textarea
+                        value={serviceFormData.description}
+                        onChange={(e) => setServiceFormData(prev => ({ ...prev, description: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none"
+                        rows={3}
+                        placeholder="Describe what this service includes..."
+                        required
+                      />
+                    </div>
+
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Category *</label>
+                      <input
+                        type="text"
+                        value={serviceFormData.category}
+                        onChange={(e) => setServiceFormData(prev => ({ ...prev, category: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        placeholder="e.g., Standard, Premium, Express"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Pricing Section */}
+                  <div className="bg-gradient-to-r from-emerald-50 to-green-50/50 rounded-xl p-4 md:p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                      <span className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center mr-3">
+                        💰
+                      </span>
+                      Pricing Structure
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Base Price (₦) *</label>
+                        <input
+                          type="number"
+                          value={serviceFormData.basePrice}
+                          onChange={(e) => setServiceFormData(prev => ({ ...prev, basePrice: e.target.value }))}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200"
+                          placeholder="1000"
+                          min="0"
+                          step="50"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Price per KG (₦)</label>
+                        <input
+                          type="number"
+                          value={serviceFormData.pricePerKg}
+                          onChange={(e) => setServiceFormData(prev => ({ ...prev, pricePerKg: e.target.value }))}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200"
+                          placeholder="500"
+                          min="0"
+                          step="50"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Price per Item (₦)</label>
+                        <input
+                          type="number"
+                          value={serviceFormData.pricePerItem}
+                          onChange={(e) => setServiceFormData(prev => ({ ...prev, pricePerItem: e.target.value }))}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200"
+                          placeholder="200"
+                          min="0"
+                          step="50"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Estimated Duration (hours) *</label>
+                      <input
+                        type="number"
+                        value={serviceFormData.estimatedDuration}
+                        onChange={(e) => setServiceFormData(prev => ({ ...prev, estimatedDuration: e.target.value }))}
+                        className="w-full md:w-1/3 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200"
+                        placeholder="24"
+                        min="1"
+                        max="168"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Service Areas Section */}
+                  <div className="bg-gradient-to-r from-purple-50 to-indigo-50/50 rounded-xl p-4 md:p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                      <span className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                        🗺️
+                      </span>
+                      Service Areas
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {lagosAreas.map((area) => (
+                        <label key={area} className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-purple-50 transition-colors duration-200 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={serviceFormData.availableAreas.includes(area)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setServiceFormData(prev => ({
+                                  ...prev,
+                                  availableAreas: [...prev.availableAreas, area]
+                                }));
+                              } else {
+                                setServiceFormData(prev => ({
+                                  ...prev,
+                                  availableAreas: prev.availableAreas.filter(a => a !== area)
+                                }));
+                              }
+                            }}
+                            className="rounded border-gray-300 text-purple-600 shadow-sm focus:border-purple-300 focus:ring focus:ring-purple-200 focus:ring-opacity-50"
+                          />
+                          <span className="ml-2 text-sm text-gray-700 font-medium">{area}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Additional Options Section */}
+                  <div className="bg-gradient-to-r from-amber-50 to-orange-50/50 rounded-xl p-4 md:p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                      <span className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center mr-3">
+                        ⚙️
+                      </span>
+                      Additional Options
+                    </h3>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Special Instructions</label>
+                      <textarea
+                        value={serviceFormData.specialInstructions}
+                        onChange={(e) => setServiceFormData(prev => ({ ...prev, specialInstructions: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200 resize-none"
+                        rows={2}
+                        placeholder="Any special care instructions for this service..."
+                      />
+                    </div>
+
+                    <div className="mt-4">
+                      <label className="flex items-center p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors duration-200 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={serviceFormData.isActive}
+                          onChange={(e) => setServiceFormData(prev => ({ ...prev, isActive: e.target.checked }))}
+                          className="rounded border-gray-300 text-green-600 shadow-sm focus:border-green-300 focus:ring focus:ring-green-200 focus:ring-opacity-50"
+                        />
+                        <span className="ml-3 text-sm font-medium text-gray-700">
+                          Service is active and available for booking
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Form Actions */}
+                  <div className="flex justify-end space-x-4">
+                    <button
+                      type="button"
+                      onClick={resetServiceForm}
+                      className="px-6 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-medium transition-all duration-200"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                    >
+                      {isLoading ? (
+                        <span className="flex items-center">
+                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Saving...
+                        </span>
+                      ) : (
+                        editingService ? 'Update Service' : 'Create Service'
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Customer Details Modal */}
+        {showCustomerDetails && selectedCustomer && (
+          <div className="fixed inset-0 bg-gray-900/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className={`bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden ${ac.scaleIn}`}>
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl md:text-2xl font-bold text-white">
+                    Customer Details
+                  </h2>
+                  <button
+                    onClick={() => setShowCustomerDetails(false)}
+                    className="text-blue-200 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-all duration-200"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Customer Info */}
+                  <div className="bg-gradient-to-r from-gray-50 to-blue-50/50 rounded-xl p-4 md:p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                      <span className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                        👤
+                      </span>
+                      Customer Information
+                    </h3>
+                    <div className="flex items-center space-x-4 mb-4">
+                      <div className="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center text-2xl font-semibold text-blue-700">
+                        {selectedCustomer.firstName.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900">{selectedCustomer.firstName} {selectedCustomer.lastName}</h4>
+                        <p className="text-gray-600">{selectedCustomer.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-4 mb-4">
+                      <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-2xl font-semibold text-emerald-700">
+                        📞
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900">Phone</h4>
+                        <p className="text-gray-600">{selectedCustomer.phone?.number || 'Not provided'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-4 mb-4">
+                      <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center text-2xl font-semibold text-purple-700">
+                        📅
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900">Join Date</h4>
+                        <p className="text-gray-600">{new Date(selectedCustomer.$createdAt).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-4 mb-4">
+                      <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-2xl font-semibold text-amber-700">
+                        💳
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900">Payment Method</h4>
+                        <p className="text-gray-600">{selectedCustomer.preferredPaymentMethod || 'Not provided'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Order Stats */}
+                  <div className="bg-gradient-to-r from-emerald-50 to-green-50/50 rounded-xl p-4 md:p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                      <span className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center mr-3">
+                        📊
+                      </span>
+                      Order Statistics
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-2xl font-semibold text-emerald-700">
+                          📦
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900">Total Orders</h4>
+                          <p className="text-gray-600">{selectedCustomer.totalOrders}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-2xl font-semibold text-emerald-700">
+                          💸
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900">Total Spent</h4>
+                          <p className="text-gray-600">₦{selectedCustomer.totalSpent.toLocaleString()}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-2xl font-semibold text-emerald-700">
+                          📅
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900">Last Order Date</h4>
+                          <p className="text-gray-600">{selectedCustomer.lastOrderDate ? new Date(selectedCustomer.lastOrderDate).toLocaleDateString() : 'No orders yet'}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-2xl font-semibold text-emerald-700">
+                          📝
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900">Status</h4>
+                          <p className="text-gray-600">{selectedCustomer.isActive ? 'Active' : 'Inactive'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+               
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Staff Details Modal */}
+        {showStaffDetails && selectedStaff && (
+          <div className="fixed inset-0 bg-gray-900/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className={`bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden ${ac.scaleIn}`}>
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl md:text-2xl font-bold text-white">
+                    Staff Details
+                  </h2>
+                  <button
+                    onClick={() => setShowStaffDetails(false)}
+                    className="text-blue-200 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-all duration-200"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Staff Info */}
+                  <div className="bg-gradient-to-r from-gray-50 to-blue-50/50 rounded-xl p-4 md:p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                      <span className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                        👤
+                      </span>
+                      Staff Information
+                    </h3>
+                    <div className="flex items-center space-x-4 mb-4">
+                      <div className="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center text-2xl font-semibold text-blue-700">
+                        {selectedStaff.firstName.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900">{selectedStaff.firstName} {selectedStaff.lastName}</h4>
+                        <p className="text-gray-600">{selectedStaff.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-4 mb-4">
+                      <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-2xl font-semibold text-emerald-700">
+                        📞
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900">Phone</h4>
+                        <p className="text-gray-600">{selectedStaff.phone?.number || 'Not provided'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-4 mb-4">
+                      <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center text-2xl font-semibold text-purple-700">
+                        📅
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900">Hire Date</h4>
+                        <p className="text-gray-600">{new Date(selectedStaff.hireDate).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-4 mb-4">
+                      <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-2xl font-semibold text-amber-700">
+                        💳
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900">Employee ID</h4>
+                        <p className="text-gray-600">{selectedStaff.employeeId}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Performance Stats */}
+                  <div className="bg-gradient-to-r from-emerald-50 to-green-50/50 rounded-xl p-4 md:p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                      <span className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center mr-3">
+                        📊
+                      </span>
+                      Performance Statistics
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-2xl font-semibold text-emerald-700">
+                          📦
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900">Orders Handled</h4>
+                          <p className="text-gray-600">{selectedStaff.ordersHandled}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-2xl font-semibold text-emerald-700">
+                          🌟
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900">Performance Rating</h4>
+                          <p className="text-gray-600">{selectedStaff.averageRating || 'N/A'}/5</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-2xl font-semibold text-emerald-700">
+                          👥
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900">Role</h4>
+                          <p className="text-gray-600">{selectedStaff.role}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-2xl font-semibold text-emerald-700">
+                          📝
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900">Status</h4>
+                          <p className="text-gray-600">{selectedStaff.isActive ? 'Active' : 'Inactive'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Permissions */}
+                <div className="mt-6 bg-gradient-to-r from-purple-50 to-indigo-50/50 rounded-xl p-4 md:p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <span className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                      🔑
+                    </span>
+                    Permissions
+                  </h3>
+                  <ul className="space-y-2">
+                    {(selectedStaff.permissions && Array.isArray(selectedStaff.permissions) && selectedStaff.permissions.length > 0) ? (
+                      selectedStaff.permissions.map((permission) => (
+                        <li key={permission} className="flex items-center space-x-2">
+                          <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+                          <span className="text-gray-700">{permission}</span>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="text-gray-500 italic">No permissions assigned</li>
+                    )}
+                  </ul>
+                </div>
+
+                {/* Contact Button */}
+                <div className="mt-6">
+                  <a
+                    href={`tel:${selectedStaff.phone?.number || ''}`}
+                    className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  >
+                    Contact Staff
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirmation && staffToDelete && (
+          <div className="fixed inset-0 bg-gray-900/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className={`bg-white rounded-2xl shadow-2xl max-w-md w-full ${ac.scaleIn}`}>
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-white flex items-center">
+                    <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    Confirm Deletion
+                  </h2>
+                  <button
+                    onClick={cancelDeleteStaff}
+                    className="text-red-200 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-all duration-200"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6">
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
+                    <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Delete Staff Member</h3>
+                    <p className="text-gray-600">This action cannot be undone</p>
+                  </div>
+                </div>
+
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                  <p className="text-sm text-red-800">
+                    Are you sure you want to delete <strong>{staffToDelete.firstName} {staffToDelete.lastName}</strong>? 
+                    This will permanently remove their account and all associated data.
+                  </p>
+                </div>
+
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={cancelDeleteStaff}
+                    disabled={isDeleting}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDeleteStaff}
+                    disabled={isDeleting}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Deleting...
+                      </>
+                    ) : (
+                      'Delete Staff'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

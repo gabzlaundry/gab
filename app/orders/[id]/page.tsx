@@ -10,6 +10,7 @@ import { formatNairaFromKobo } from '@/lib/validations';
 import { PaystackButton } from '@/components/PaystackPayment';
 import { Navbar } from '@/components/ui/navbar';
 import { responsiveClasses as rc, animationClasses as ac } from '@/lib/animations';
+import { toast } from 'sonner';
 
 interface OrderDetailsPageProps {
   params: Promise<{
@@ -165,23 +166,23 @@ function OrderDetailsContent({ params }: OrderDetailsPageProps) {
               
               // Reload order data
               loadOrderDetails(false);
-              alert('Payment verified successfully! Your order status has been updated.');
+              toast.success('Payment verified successfully! Your order status has been updated.');
             } else {
-              alert('Payment was verified but failed to update order status. Please contact support.');
+              toast.error('Payment was verified but failed to update order status. Please contact support.');
             }
           } else {
-            alert('Payment verification failed. Please contact support with your order number.');
+            toast.error('Payment verification failed. Please contact support with your order number.');
           }
         } else {
           // If no reference, just try to refresh the order data in case webhook updated it
           await loadOrderDetails(false);
           if (order.paymentStatus === 'pending') {
-            alert('No payment reference found. If you completed payment, please contact support with your order number and payment receipt.');
+            toast.error('No payment reference found. If you completed payment, please contact support with your order number and payment receipt.');
           }
         }
       } catch (error) {
         console.error('❌ Manual payment verification failed:', error);
-        alert('Failed to verify payment. Please contact support.');
+        toast.error('Failed to verify payment. Please contact support.');
       } finally {
         setIsVerifyingPayment(false);
     }
@@ -665,7 +666,7 @@ function OrderDetailsContent({ params }: OrderDetailsPageProps) {
               
               <div className="space-y-3">
                 <a 
-                  href="tel:+234800GABZLAG" 
+                  href="tel:+2349137435555" 
                   className="flex items-center justify-center bg-white hover:bg-blue-50 text-blue-600 font-medium py-3 px-4 rounded-xl transition-all duration-300 hover:scale-105 shadow-sm hover:shadow-md"
                 >
                   <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

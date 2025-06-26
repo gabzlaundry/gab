@@ -9,6 +9,7 @@ import OrderReceipt from '@/components/OrderReceipt';
 import Link from 'next/link';
 import { Navbar } from '@/components/ui/navbar';
 import { responsiveClasses as rc, animationClasses as ac } from '@/lib/animations';
+import { toast } from 'sonner';
 
 function ReceiptPageContent() {
   const { id } = useParams();
@@ -106,7 +107,7 @@ function ReceiptPageContent() {
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
-      alert('Please allow pop-ups to print the receipt');
+      toast.error('Please allow pop-ups to print the receipt');
       return;
     }
 
@@ -412,7 +413,7 @@ function ReceiptPageContent() {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <a 
-              href="tel:+234800GABZLAG" 
+              href="tel:+2349137435555" 
               className="flex items-center justify-center bg-white hover:bg-blue-50 text-blue-600 font-medium py-3 px-4 rounded-xl transition-all duration-300 hover:scale-105 shadow-sm hover:shadow-md"
             >
               <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -88,7 +88,7 @@ NEXT_PUBLIC_APPWRITE_TIME_SLOTS_COLLECTION_ID=time-slots
 NEXT_PUBLIC_APPWRITE_ADMIN_USERS_COLLECTION_ID=admin-users
 
 # Nigerian Business Configuration
-NEXT_PUBLIC_BUSINESS_PHONE=+2348000000000
+NEXT_PUBLIC_BUSINESS_PHONE=+23491374355550
 NEXT_PUBLIC_SERVICE_AREAS=Lagos Island,Lagos Mainland,Ikeja,Victoria Island,Lekki,Surulere,Yaba,Ikoyi
 NEXT_PUBLIC_BUSINESS_HOURS_START=08:00
 NEXT_PUBLIC_BUSINESS_HOURS_END=20:00
@@ -317,8 +317,8 @@ const order = await databaseService.createOrder({
 ## 📞 Support
 
 For technical support or business inquiries:
-- Email: support@gabzlaundromat.com
-- Phone: +234800000000
+- Email: gabzlaundromatt@gmail.com
+- Phone: +2349137435555
 - Address: Lagos State, Nigeria
 
 ## 📄 License

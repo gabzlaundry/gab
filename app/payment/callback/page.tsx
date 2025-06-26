@@ -222,8 +222,8 @@ function PaymentCallbackContent() {
                 <div className="text-center">
                   <p className="text-sm text-gray-500">
                     Need help? Contact us at{' '}
-                    <a href="tel:+234800GABZLAG" className="text-blue-600 hover:text-blue-700">
-                      +234 800 GABZ LAG
+                    <a href="tel:+2349137435555" className="text-blue-600 hover:text-blue-700">
+                      +234 913 743 5555
                     </a>
                   </p>
                 </div>

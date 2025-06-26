@@ -6,6 +6,7 @@ import { databaseService } from '@/lib/database';
 import { Service } from '@/lib/types';
 import { formatNairaFromKobo } from '@/lib/validations';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 export default function DebugServicesPage() {
   const { user, isAuthenticated } = useAuth();
@@ -37,12 +38,12 @@ export default function DebugServicesPage() {
     try {
       const response = await databaseService.getServiceById(serviceId);
       if (response.success) {
-        alert(`✅ Service found: ${response.data?.name}`);
+        toast.success(`✅ Service found: ${response.data?.name}`);
       } else {
-        alert(`❌ Service not found: ${response.error}`);
+        toast.error(`❌ Service not found: ${response.error}`);
       }
     } catch (error) {
-      alert(`❌ Error: ${error}`);
+      toast.error(`❌ Error: ${error}`);
     }
   };
 

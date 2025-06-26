@@ -8,6 +8,7 @@ import { Service, ServiceType } from '@/lib/types';
 import { formatNairaFromKobo, convertNairaToKobo } from '@/lib/validations';
 import { withAuth } from '@/lib/context/AuthContext';
 import { responsiveClasses as rc, animationClasses as ac } from '@/lib/animations';
+import { toast } from 'sonner';
 
 function ServiceManagementPage() {
   const { user, isAdmin } = useAuth();
@@ -114,23 +115,23 @@ function ServiceManagementPage() {
         if (response.success) {
           await loadServices();
           resetServiceForm();
-          alert('Service updated successfully!');
+          toast.success('Service updated successfully!');
         } else {
-          alert(`Failed to update service: ${response.error}`);
+          toast.error(`Failed to update service: ${response.error}`);
         }
       } else {
         const response = await databaseService.createService(serviceData);
         if (response.success) {
           await loadServices();
           resetServiceForm();
-          alert('Service created successfully!');
+          toast.success('Service created successfully!');
         } else {
-          alert(`Failed to create service: ${response.error}`);
+          toast.error(`Failed to create service: ${response.error}`);
         }
       }
     } catch (error) {
       console.error('Service operation failed:', error);
-      alert('Failed to save service');
+      toast.error('Failed to save service');
     } finally {
       setIsLoading(false);
     }
@@ -164,11 +165,11 @@ function ServiceManagementPage() {
       if (response.success) {
         await loadServices();
       } else {
-        alert(`Failed to update service status: ${response.error}`);
+        toast.error(`Failed to update service status: ${response.error}`);
       }
     } catch (error) {
       console.error('Failed to toggle service status:', error);
-      alert('Failed to update service status');
+      toast.error('Failed to update service status');
     }
   };
 

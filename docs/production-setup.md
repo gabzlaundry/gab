@@ -545,7 +545,7 @@ artillery run load-test-config.yml
 
 ### **Business Support**
 - **Operations**: operations@gabzlaundromat.com
-- **Customer Service**: support@gabzlaundromat.com
+- **Customer Service**: gabzlaundromatt@gmail.com
 - **Emergency**: +234-800-GABZ-911
 
 ---

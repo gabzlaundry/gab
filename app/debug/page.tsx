@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { databaseService } from '@/lib/database';
 import { PaymentStatus, OrderStatus } from '@/lib/types';
+import { toast } from 'sonner';
 
 export default function DebugPage() {
   const [orderId, setOrderId] = useState('');
@@ -15,7 +16,7 @@ export default function DebugPage() {
 
   const debugPaymentStatus = async () => {
     if (!orderId.trim()) {
-      alert('Please enter an order ID');
+      toast.error('Please enter an order ID');
       return;
     }
 
@@ -75,7 +76,7 @@ export default function DebugPage() {
 
   const checkOrderStatus = async () => {
     if (!orderId.trim()) {
-      alert('Please enter an order ID');
+      toast.error('Please enter an order ID');
       return;
     }
 

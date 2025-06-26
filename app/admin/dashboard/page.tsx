@@ -366,7 +366,7 @@ function AdminDashboardPage() {
                 </div>
               </div>
             </Link>
-            <Link
+            {/* <Link
               href="/admin/customers"
               className="group p-4 md:p-6 border border-gray-200 rounded-xl hover:border-emerald-300 hover:bg-emerald-50/50 transition-all duration-300 transform hover:-translate-y-1"
             >
@@ -381,7 +381,7 @@ function AdminDashboardPage() {
                   <p className="text-sm text-gray-600">View customer information and history</p>
                 </div>
               </div>
-            </Link>
+            </Link> */}
           </div>
         </div>
 

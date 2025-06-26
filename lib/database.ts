@@ -973,6 +973,108 @@ export class DatabaseService {
       };
     }
   }
+
+  // Delete admin user (staff deletion)
+  async deleteAdminUser(adminUserId: string): Promise<ApiResponse<null>> {
+    try {
+      await databases.deleteDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.collections.adminUsers,
+        adminUserId
+      );
+
+      return {
+        success: true,
+        data: null,
+        message: 'Staff member deleted successfully'
+      };
+    } catch (error: any) {
+      console.error('Failed to delete admin user:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to delete staff member'
+      };
+    }
+  }
+
+  // Update admin user
+  async updateAdminUser(adminUserId: string, updates: Partial<AdminUser>): Promise<ApiResponse<AdminUser>> {
+    try {
+      // Convert updates to Appwrite format
+      const appwriteUpdates: any = {};
+      
+      if (updates.firstName) appwriteUpdates.firstName = updates.firstName;
+      if (updates.lastName) appwriteUpdates.lastName = updates.lastName;
+      if (updates.email) appwriteUpdates.email = updates.email;
+      if (updates.phone) {
+        appwriteUpdates.phoneNumber = updates.phone.number;
+        appwriteUpdates.isWhatsAppNumber = updates.phone.isWhatsApp;
+      }
+      if (updates.role) appwriteUpdates.role = updates.role;
+      if (updates.isActive !== undefined) appwriteUpdates.isActive = updates.isActive;
+      if (updates.permissions) appwriteUpdates.permissions = JSON.stringify(updates.permissions);
+      if (updates.assignedAreas) appwriteUpdates.assignedAreas = JSON.stringify(updates.assignedAreas);
+      if (updates.workingHours) {
+        appwriteUpdates.workingHoursStart = updates.workingHours.start;
+        appwriteUpdates.workingHoursEnd = updates.workingHours.end;
+      }
+      if (updates.workingDays) appwriteUpdates.workingDays = JSON.stringify(updates.workingDays);
+      if (updates.employeeId) appwriteUpdates.employeeId = updates.employeeId;
+      if (updates.hireDate) appwriteUpdates.hireDate = updates.hireDate;
+      if (updates.totalOrdersHandled !== undefined) appwriteUpdates.totalOrdersHandled = updates.totalOrdersHandled;
+      if (updates.averageRating !== undefined) appwriteUpdates.averageRating = updates.averageRating;
+
+      const updatedDoc = await databases.updateDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.collections.adminUsers,
+        adminUserId,
+        appwriteUpdates
+      );
+
+      // Convert back to AdminUser format
+      const updatedAdminUser: AdminUser = {
+        $id: updatedDoc.$id,
+        $createdAt: updatedDoc.$createdAt,
+        $updatedAt: updatedDoc.$updatedAt,
+        $permissions: updatedDoc.$permissions,
+        $collectionId: updatedDoc.$collectionId,
+        $databaseId: updatedDoc.$databaseId,
+        email: updatedDoc.email,
+        firstName: updatedDoc.firstName,
+        lastName: updatedDoc.lastName,
+        phone: {
+          number: updatedDoc.phoneNumber || '',
+          isWhatsApp: updatedDoc.isWhatsAppNumber || false
+        },
+        role: updatedDoc.role,
+        isActive: updatedDoc.isActive,
+        permissions: JSON.parse(updatedDoc.permissions || '[]'),
+        assignedAreas: JSON.parse(updatedDoc.assignedAreas || '[]'),
+        workingHours: {
+          start: updatedDoc.workingHoursStart || '08:00',
+          end: updatedDoc.workingHoursEnd || '17:00'
+        },
+        workingDays: JSON.parse(updatedDoc.workingDays || '[]'),
+        employeeId: updatedDoc.employeeId,
+        hireDate: updatedDoc.hireDate,
+        lastLogin: updatedDoc.lastLogin,
+        totalOrdersHandled: updatedDoc.totalOrdersHandled || 0,
+        averageRating: updatedDoc.averageRating
+      };
+
+      return {
+        success: true,
+        data: updatedAdminUser,
+        message: 'Staff member updated successfully'
+      };
+    } catch (error: any) {
+      console.error('Failed to update admin user:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to update staff member'
+      };
+    }
+  }
 }
 
 // Create and export instance
