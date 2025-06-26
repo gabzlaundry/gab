@@ -20,6 +20,8 @@ export default function ServicesPage() {
 
   const serviceTypes = [
     { value: 'all', label: 'All Services' },
+    { value: ServiceType.LAUNDROMAT, label: 'Laundromat' },
+
     { value: ServiceType.WASH_AND_FOLD, label: 'Wash & Fold' },
     { value: ServiceType.DRY_CLEANING, label: 'Dry Cleaning' },
     { value: ServiceType.IRONING, label: 'Ironing' }
