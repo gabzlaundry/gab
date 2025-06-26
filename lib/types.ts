@@ -292,10 +292,10 @@ export interface ValidationError {
 // Updated to accept local Nigerian phone numbers without country code
 export const NIGERIAN_PHONE_REGEX = /^0[789]\d{9}$/;
 export const LAGOS_LGAS = [
-  'Agege', 'Ajeromi-Ifelodun', 'Alimosho', 'Amuwo-Odofin', 'Apapa',
-  'Badagry', 'Epe', 'Eti Osa', 'Ibeju-Lekki', 'Ifako-Ijaiye',
-  'Ikeja', 'Ikorodu', 'Kosofe', 'Lagos Island', 'Lagos Mainland',
-  'Mushin', 'Ojo', 'Oshodi-Isolo', 'Shomolu', 'Surulere'
+    'Agege', 'Ajeromi-Ifelodun', 'Alimosho', 'Amuwo-Odofin', 'Apapa',
+    'Badagry', 'Epe', 'Eti Osa', 'Ibeju-Lekki', 'Ifako-Ijaiye',
+    'Ikeja', 'Ikorodu', 'Kosofe', 'Lagos Island', 'Lagos Mainland',
+    'Mushin', 'Ojo', 'Oshodi-Isolo', 'Shomolu', 'Surulere'
 ];
 
 export const NAIRA_TO_KOBO_MULTIPLIER = 100;

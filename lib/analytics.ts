@@ -85,10 +85,7 @@ export class AnalyticsService {
   async getBusinessMetrics(filter: PeriodFilter): Promise<ApiResponse<BusinessMetrics>> {
     try {
       // Get all orders within date range
-      const ordersResponse = await databaseService.getOrdersByDateRange(
-        filter.startDate,
-        filter.endDate
-      );
+      const ordersResponse = await databaseService.getAllOrders();
 
       if (!ordersResponse.success || !ordersResponse.data) {
         return {
@@ -97,26 +94,26 @@ export class AnalyticsService {
         };
       }
 
-      const orders = ordersResponse.data;
-      const completedOrders = orders.filter(order => 
+      const orders: Order[] = ordersResponse.data;
+      const completedOrders = orders.filter((order: Order) => 
         order.status === OrderStatus.DELIVERED
       );
 
       // Get unique customers
       const customersResponse = await databaseService.getAllUsers();
       const totalCustomers = customersResponse.success && customersResponse.data 
-        ? customersResponse.data.filter(user => user.role === 'customer').length 
+        ? customersResponse.data.length 
         : 0;
 
       // Calculate metrics
-      const totalRevenue = completedOrders.reduce((sum, order) => sum + order.finalAmount, 0);
+      const totalRevenue = completedOrders.reduce((sum: number, order: Order) => sum + order.finalAmount, 0);
       const totalOrders = orders.length;
       const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
       const completionRate = totalOrders > 0 ? (completedOrders.length / totalOrders) * 100 : 0;
 
       // Calculate customer retention (customers with more than 1 order)
       const customerOrderCounts = new Map<string, number>();
-      orders.forEach(order => {
+      orders.forEach((order: Order) => {
         const count = customerOrderCounts.get(order.customerId) || 0;
         customerOrderCounts.set(order.customerId, count + 1);
       });
@@ -149,10 +146,7 @@ export class AnalyticsService {
   // Get revenue analytics
   async getRevenueAnalytics(filter: PeriodFilter): Promise<ApiResponse<RevenueAnalytics>> {
     try {
-      const ordersResponse = await databaseService.getOrdersByDateRange(
-        filter.startDate,
-        filter.endDate
-      );
+      const ordersResponse = await databaseService.getAllOrders();
 
       if (!ordersResponse.success || !ordersResponse.data) {
         return {
@@ -161,14 +155,14 @@ export class AnalyticsService {
         };
       }
 
-      const orders = ordersResponse.data.filter(order => 
+      const orders: Order[] = ordersResponse.data.filter((order: Order) => 
         order.status === OrderStatus.DELIVERED
       );
 
       // Group by period
       const revenueByPeriod = new Map<string, { revenue: number; orders: number }>();
 
-      orders.forEach(order => {
+      orders.forEach((order: Order) => {
         const orderDate = new Date(order.$createdAt);
         let periodKey: string;
 
@@ -206,15 +200,15 @@ export class AnalyticsService {
       // Calculate year-to-date revenue
       const currentYear = new Date().getFullYear();
       const yearToDate = orders
-        .filter(order => new Date(order.$createdAt).getFullYear() === currentYear)
-        .reduce((sum, order) => sum + order.finalAmount, 0);
+        .filter((order: Order) => new Date(order.$createdAt).getFullYear() === currentYear)
+        .reduce((sum: number, order: Order) => sum + order.finalAmount, 0);
 
       return {
         success: true,
         data: {
           daily,
-          weekly: daily, // For simplicity, using same data structure
-          monthly: daily,
+          weekly: daily.map(item => ({ week: item.date, revenue: item.revenue, orders: item.orders })),
+          monthly: daily.map(item => ({ month: item.date, revenue: item.revenue, orders: item.orders })),
           yearToDate
         }
       };
@@ -229,11 +223,7 @@ export class AnalyticsService {
   // Get customer analytics
   async getCustomerAnalytics(filter: PeriodFilter): Promise<ApiResponse<CustomerAnalytics>> {
     try {
-      const ordersResponse = await databaseService.getOrdersByDateRange(
-        filter.startDate,
-        filter.endDate
-      );
-
+      const ordersResponse = await databaseService.getAllOrders();
       const customersResponse = await databaseService.getAllUsers();
 
       if (!ordersResponse.success || !customersResponse.success) {
@@ -243,8 +233,8 @@ export class AnalyticsService {
         };
       }
 
-      const orders = ordersResponse.data || [];
-      const customers = customersResponse.data?.filter(user => user.role === 'customer') || [];
+      const orders: Order[] = ordersResponse.data || [];
+      const customers: User[] = customersResponse.data || [];
 
       // Calculate customer metrics
       const customerStats = new Map<string, {
@@ -255,7 +245,7 @@ export class AnalyticsService {
         area: string;
       }>();
 
-      orders.forEach(order => {
+      orders.forEach((order: Order) => {
         const customer = customers.find(c => c.$id === order.customerId);
         if (customer) {
           const existing = customerStats.get(order.customerId) || {
@@ -263,7 +253,7 @@ export class AnalyticsService {
             totalSpent: 0,
             totalOrders: 0,
             firstOrderDate: order.$createdAt,
-            area: this.extractAreaFromAddress(order.pickupAddress)
+            area: this.extractAreaFromAddress(order.pickupAddress?.street || '')
           };
 
           customerStats.set(order.customerId, {
@@ -329,11 +319,7 @@ export class AnalyticsService {
   // Get service analytics
   async getServiceAnalytics(filter: PeriodFilter): Promise<ApiResponse<ServiceAnalytics>> {
     try {
-      const ordersResponse = await databaseService.getOrdersByDateRange(
-        filter.startDate,
-        filter.endDate
-      );
-
+      const ordersResponse = await databaseService.getAllOrders();
       const servicesResponse = await databaseService.getActiveServices();
 
       if (!ordersResponse.success || !servicesResponse.success) {
@@ -343,25 +329,25 @@ export class AnalyticsService {
         };
       }
 
-      const orders = ordersResponse.data || [];
-      const services = servicesResponse.data || [];
+      const orders: Order[] = ordersResponse.data || [];
+      const services: Service[] = servicesResponse.data || [];
 
       // Calculate service popularity
       const serviceStats = new Map<string, { count: number; revenue: number; serviceName: string }>();
 
-      orders.forEach(order => {
-        order.items.forEach(item => {
-          const service = services.find(s => s.$id === item.serviceId);
+      orders.forEach((order: Order) => {
+        order.items?.forEach((serviceSelection: any) => {
+          const service = services.find(s => s.$id === serviceSelection.serviceId);
           if (service) {
-            const existing = serviceStats.get(item.serviceId) || {
+            const existing = serviceStats.get(serviceSelection.serviceId) || {
               count: 0,
               revenue: 0,
               serviceName: service.name
             };
 
-            serviceStats.set(item.serviceId, {
-              count: existing.count + item.quantity,
-              revenue: existing.revenue + (item.price * item.quantity),
+            serviceStats.set(serviceSelection.serviceId, {
+              count: existing.count + serviceSelection.quantity,
+              revenue: existing.revenue + (service.basePrice * serviceSelection.quantity),
               serviceName: service.name
             });
           }
@@ -380,18 +366,18 @@ export class AnalyticsService {
       // Services by area
       const areaServiceStats = new Map<string, Map<string, number>>();
       
-      orders.forEach(order => {
-        const area = this.extractAreaFromAddress(order.pickupAddress);
+      orders.forEach((order: Order) => {
+        const area = this.extractAreaFromAddress(order.pickupAddress?.street || '');
         if (!areaServiceStats.has(area)) {
           areaServiceStats.set(area, new Map());
         }
         
         const areaStats = areaServiceStats.get(area)!;
-        order.items.forEach(item => {
-          const service = services.find(s => s.$id === item.serviceId);
+        order.items?.forEach((serviceSelection: any) => {
+          const service = services.find(s => s.$id === serviceSelection.serviceId);
           if (service) {
             const count = areaStats.get(service.name) || 0;
-            areaStats.set(service.name, count + item.quantity);
+            areaStats.set(service.name, count + serviceSelection.quantity);
           }
         });
       });
@@ -426,10 +412,7 @@ export class AnalyticsService {
   // Get operational metrics
   async getOperationalMetrics(filter: PeriodFilter): Promise<ApiResponse<OperationalMetrics>> {
     try {
-      const ordersResponse = await databaseService.getOrdersByDateRange(
-        filter.startDate,
-        filter.endDate
-      );
+      const ordersResponse = await databaseService.getAllOrders();
 
       if (!ordersResponse.success || !ordersResponse.data) {
         return {
@@ -438,11 +421,11 @@ export class AnalyticsService {
         };
       }
 
-      const orders = ordersResponse.data;
+      const orders: Order[] = ordersResponse.data;
 
       // Orders by status
       const statusCounts = new Map<OrderStatus, number>();
-      orders.forEach(order => {
+      orders.forEach((order: Order) => {
         const count = statusCounts.get(order.status) || 0;
         statusCounts.set(order.status, count + 1);
       });
@@ -455,15 +438,15 @@ export class AnalyticsService {
         }));
 
       // Calculate average processing time
-      const completedOrders = orders.filter(order => order.status === OrderStatus.DELIVERED);
-      const processingTimes = completedOrders.map(order => {
+      const completedOrders = orders.filter((order: Order) => order.status === OrderStatus.DELIVERED);
+      const processingTimes = completedOrders.map((order: Order) => {
         const startTime = new Date(order.$createdAt).getTime();
         const endTime = new Date(order.$updatedAt).getTime();
         return (endTime - startTime) / (1000 * 60 * 60); // Convert to hours
       });
 
       const averageProcessingTime = processingTimes.length > 0
-        ? processingTimes.reduce((sum, time) => sum + time, 0) / processingTimes.length
+        ? processingTimes.reduce((sum: number, time: number) => sum + time, 0) / processingTimes.length
         : 0;
 
       // Mock pickup/delivery metrics (would need additional tracking in real app)
@@ -529,7 +512,7 @@ export class AnalyticsService {
           const revenueData = await this.getRevenueAnalytics(filter);
           if (revenueData.success && revenueData.data) {
             csvData = 'Date,Revenue,Orders\n';
-            revenueData.data.daily.forEach(item => {
+            revenueData.data.daily.forEach((item: { date: string; revenue: number; orders: number }) => {
               csvData += `${item.date},${item.revenue},${item.orders}\n`;
             });
           }
@@ -539,7 +522,7 @@ export class AnalyticsService {
           const customerData = await this.getCustomerAnalytics(filter);
           if (customerData.success && customerData.data) {
             csvData = 'Customer Name,Total Spent,Total Orders\n';
-            customerData.data.topCustomers.forEach(customer => {
+            customerData.data.topCustomers.forEach((customer: { name: string; totalSpent: number; totalOrders: number }) => {
               csvData += `${customer.name},${customer.totalSpent},${customer.totalOrders}\n`;
             });
           }
@@ -581,8 +564,7 @@ export class AnalyticsService {
   // Helper method to extract area from address
   private extractAreaFromAddress(address: string): string {
     const lagosAreas = [
-      'Lagos Island', 'Victoria Island', 'Ikoyi', 'Lekki', 'Ikeja', 
-      'Surulere', 'Yaba', 'Apapa', 'Mushin', 'Agege'
+        'Ajah', 'Abraham Adesanya', 'Sangotedo', 'United Estate', 'GRA', 'Fara park Estate', 'Thomas Estate', 'Ibeju lekki', 'Awoyaya', 'Ogidan', 'Eleko', 'Dangote refinery', 'Lagos Island', 'Lagos Mainland', 'Ikeja', 'Victoria Island', 'Lekki', 'Surulere', 'Yaba', 'Ikoyi'
     ];
     
     const lowerAddress = address.toLowerCase();

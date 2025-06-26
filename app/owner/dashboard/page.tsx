@@ -350,9 +350,7 @@ export default function OwnerDashboard() {
   };
 
   const lagosAreas = [
-    'Lagos Island', 'Victoria Island', 'Ikoyi', 'Lekki', 'Ikeja', 
-    'Surulere', 'Yaba', 'Gbagada', 'Magodo', 'Ojodu', 'Alaba', 
-    'Festac', 'Isolo', 'Mushin', 'Oshodi', 'Apapa'
+    'Ajah', 'Abraham Adesanya', 'Sangotedo', 'United Estate', 'GRA', 'Fara park Estate', 'Thomas Estate', 'Ibeju lekki', 'Awoyaya', 'Ogidan', 'Eleko', 'Dangote refinery', 'Lagos Island', 'Lagos Mainland', 'Ikeja', 'Victoria Island', 'Lekki', 'Surulere', 'Yaba', 'Ikoyi', 'ajah', 'sangotedo'    
   ];
 
   const resetServiceForm = () => {
@@ -568,7 +566,7 @@ export default function OwnerDashboard() {
 
   const renderOverview = () => (
     <>
-      {/* Stats Grid */}
+      {/* Enhanced Stats Grid */}
       <div className={`grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-12`}>
         <div className={`bg-white/80 backdrop-blur-md rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 p-4 md:p-6 border border-white/50 ${ac.fadeIn}`} style={{ animationDelay: '0.1s' }}>
           <div className="flex items-center justify-between mb-3">
@@ -651,7 +649,7 @@ export default function OwnerDashboard() {
         </div>
       </div>
 
-      {/* Recent Orders */}
+      {/* Enhanced Recent Orders */}
       <div className={`bg-white/80 backdrop-blur-md rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 border border-white/50 ${ac.fadeIn}`} style={{ animationDelay: '0.5s' }}>
         <div className="px-6 py-5 border-b border-gray-100/50">
           <div className="flex items-center justify-between">
@@ -790,8 +788,8 @@ export default function OwnerDashboard() {
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-gray-200/50">
+          <thead className="bg-gray-50/50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
@@ -802,16 +800,23 @@ export default function OwnerDashboard() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {customers.map((customer) => (
-              <tr key={customer.$id} className="hover:bg-gray-50">
+          <tbody className="bg-white/50 divide-y divide-gray-200/50">
+            {customers.map((customer, index) => (
+              <tr key={customer.$id} className={`hover:bg-blue-50/50 transition-colors duration-200 ${ac.fadeIn}`} style={{ animationDelay: `${index * 0.1}s` }}>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">
-                      {customer.firstName} {customer.lastName}
+                  <div className="flex items-center">
+                    <div className="w-10 h-10 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center mr-3">
+                      <span className="text-sm font-bold text-blue-600">
+                        {customer.firstName?.charAt(0)}{customer.lastName?.charAt(0)}
+                      </span>
                     </div>
-                    <div className="text-sm text-gray-500">
-                      Joined: {new Date(customer.$createdAt).toLocaleDateString()}
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {customer.firstName} {customer.lastName}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Joined: {new Date(customer.$createdAt).toLocaleDateString()}
+                      </div>
                     </div>
                   </div>
                 </td>
@@ -821,18 +826,22 @@ export default function OwnerDashboard() {
                     {customer.phone?.number || 'No phone'}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {customer.totalOrders}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    {customer.totalOrders}
+                  </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
                   ₦{customer.totalSpent.toLocaleString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {customer.lastOrderDate ? new Date(customer.lastOrderDate).toLocaleDateString() : 'Never'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    customer.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                    customer.status === 'active' 
+                      ? 'bg-green-100 text-green-800 border-green-200' 
+                      : 'bg-red-100 text-red-800 border-red-200'
                   }`}>
                     {customer.status}
                   </span>
@@ -840,18 +849,26 @@ export default function OwnerDashboard() {
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <button 
                     onClick={() => router.push(`/admin/customers/${customer.$id}`)}
-                    className="text-indigo-600 hover:text-indigo-900 mr-3"
+                    className="text-indigo-600 hover:text-indigo-900 mr-3 transition-colors"
                   >
                     View
                   </button>
-                  <button className="text-green-600 hover:text-green-900">Contact</button>
+                  <button className="text-green-600 hover:text-green-900 transition-colors">Contact</button>
                 </td>
               </tr>
             ))}
             {customers.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
-                  No customers found
+                <td colSpan={7} className="px-6 py-8 text-center">
+                  <div className="flex flex-col items-center">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                    </div>
+                    <p className="text-gray-500 font-medium">No customers found</p>
+                    <p className="text-gray-400 text-sm">Customer data will appear here as they register</p>
+                  </div>
                 </td>
               </tr>
             )}
@@ -1259,22 +1276,34 @@ export default function OwnerDashboard() {
 
   const renderServices = () => (
     <div className="space-y-6">
-      <div className="bg-white shadow overflow-hidden sm:rounded-md">
-        <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
-          <div>
-            <h3 className="text-lg leading-6 font-medium text-gray-900">Services Management</h3>
-            <p className="mt-1 max-w-2xl text-sm text-gray-500">Manage your laundry services</p>
+      <div className={`bg-white/80 backdrop-blur-md rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 border border-white/50 ${ac.fadeIn}`}>
+        <div className="px-6 py-5 border-b border-gray-100/50">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center space-x-3 mb-4 md:mb-0">
+              <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Services Management</h3>
+                <p className="text-sm text-gray-600">Manage your laundry services and pricing</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowCreateService(true)}
+              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Add Service
+            </button>
           </div>
-          <button
-            onClick={() => setShowCreateService(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium"
-          >
-            + Add Service
-          </button>
         </div>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-200/50">
+            <thead className="bg-gray-50/50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
@@ -1283,20 +1312,37 @@ export default function OwnerDashboard() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {services.map((service) => (
-                <tr key={service.$id}>
+            <tbody className="bg-white/50 divide-y divide-gray-200/50">
+              {services.map((service, index) => (
+                <tr key={service.$id} className={`hover:bg-blue-50/50 transition-colors duration-200 ${ac.fadeIn}`} style={{ animationDelay: `${index * 0.1}s` }}>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{service.name}</div>
-                    <div className="text-sm text-gray-500">{service.description}</div>
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center mr-3">
+                        <span className="text-xl">
+                          {service.type === 'wash_and_fold' ? '🧺' : 
+                           service.type === 'dry_cleaning' ? '👔' : 
+                           service.type === 'ironing' ? '👕' : '🧽'}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{service.name}</div>
+                        <div className="text-sm text-gray-500">{service.description}</div>
+                      </div>
+                    </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{service.type}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 capitalize">
+                      {service.type.replace('_', ' ')}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
                     {formatNairaFromKobo(service.basePrice)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      service.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                      service.isActive 
+                        ? 'bg-green-100 text-green-800 border-green-200' 
+                        : 'bg-red-100 text-red-800 border-red-200'
                     }`}>
                       {service.isActive ? 'Active' : 'Inactive'}
                     </span>
@@ -1304,13 +1350,13 @@ export default function OwnerDashboard() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button
                       onClick={() => handleEditService(service)}
-                      className="text-indigo-600 hover:text-indigo-900 mr-3"
+                      className="text-indigo-600 hover:text-indigo-900 mr-3 transition-colors"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => handleToggleServiceStatus(service)}
-                      className={`${
+                      className={`transition-colors ${
                         service.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
                       }`}
                     >
@@ -1319,6 +1365,21 @@ export default function OwnerDashboard() {
                   </td>
                 </tr>
               ))}
+              {services.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center">
+                    <div className="flex flex-col items-center">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                      </div>
+                      <p className="text-gray-500 font-medium">No services found</p>
+                      <p className="text-gray-400 text-sm">Create your first service to get started</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -1327,88 +1388,176 @@ export default function OwnerDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/20 relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-32 h-32 bg-blue-200/20 rounded-full animate-float"></div>
-        <div className="absolute top-40 right-20 w-20 h-20 bg-indigo-200/20 rounded-full animate-float animation-delay-2000"></div>
-        <div className="absolute bottom-20 left-1/4 w-16 h-16 bg-purple-200/20 rounded-full animate-float animation-delay-4000"></div>
-        <div className="absolute top-1/2 right-10 w-12 h-12 bg-pink-200/15 rounded-full animate-float animation-delay-3000"></div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/20">
+      {/* Enhanced Navigation */}
+      <nav className="bg-white/80 backdrop-blur-md border-b border-gray-200/60 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-4">
+              {/* Mobile menu button */}
+              <button
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className="lg:hidden p-2 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 transition-all duration-200"
+              >
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              
+              <Link href="/owner/dashboard" className={`text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent ${ac.fadeIn}`}>
+                Gab'z Owner
+              </Link>
+              <span className={`text-xs md:text-sm text-gray-500 hidden sm:block ${ac.fadeIn}`}>
+                Business Dashboard
+              </span>
+            </div>
+            
+            <div className={`hidden lg:flex items-center space-x-6 ${ac.slideIn}`}>
+              <button 
+                onClick={() => setActiveTab('overview')}
+                className={`font-medium transition-colors duration-200 ${activeTab === 'overview' ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}
+              >
+                Overview
+              </button>
+              <button 
+                onClick={() => setActiveTab('customers')}
+                className={`font-medium transition-colors duration-200 ${activeTab === 'customers' ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}
+              >
+                Customers
+              </button>
+              <button 
+                onClick={() => setActiveTab('staff')}
+                className={`font-medium transition-colors duration-200 ${activeTab === 'staff' ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}
+              >
+                Staff
+              </button>
+              <button 
+                onClick={() => setActiveTab('services')}
+                className={`font-medium transition-colors duration-200 ${activeTab === 'services' ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'}`}
+              >
+                Services
+              </button>
+            </div>
 
-      {/* Navigation */}
-      <Navbar variant="owner" />
-
-      {/* Main Content */}
-      <main className={`${rc.main} relative z-10`}>
-        <div className={rc.container}>
-          {/* Enhanced Header */}
-          <div className={`mb-8 md:mb-12 ${ac.fadeIn}`}>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-              <div>
-                <div className="flex items-center space-x-3 mb-2">
-                  <div className="w-12 h-12 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <span className="text-2xl text-white">👑</span>
+            <div className="flex items-center">
+              <div className={`relative ${ac.scaleIn}`}>
+                <button
+                  onClick={() => {
+                    const menu = document.getElementById('owner-menu');
+                    menu?.classList.toggle('hidden');
+                  }}
+                  className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 p-2 rounded-xl hover:bg-gray-100/80 transition-all duration-200"
+                >
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl flex items-center justify-center font-medium shadow-lg">
+                    {user?.name?.charAt(0).toUpperCase() || 'O'}
                   </div>
-                  <div>
-                    <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                      Business Overview
-                    </h1>
-                    <p className="text-gray-600 font-medium">Welcome back, {user?.name || 'Owner'}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-4 md:mt-0">
-                <div className="flex items-center space-x-3">
-                  <div className="hidden md:flex items-center space-x-2 bg-white/80 backdrop-blur-sm rounded-xl px-4 py-2 shadow-sm">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="text-sm font-medium text-gray-700">System Online</span>
-                  </div>
+                  <span className="hidden sm:block font-medium">{user?.name || 'Owner'}</span>
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                
+                <div id="owner-menu" className={`hidden absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200/60 py-2 z-50 ${ac.fadeIn}`}>
                   <button
                     onClick={handleLogout}
-                    className="bg-white/80 backdrop-blur-sm hover:bg-red-50 text-red-600 px-4 py-2 rounded-xl font-medium transition-all duration-200 shadow-sm hover:shadow-md border border-red-200/50"
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200"
                   >
-                    Logout
+                    Sign out
                   </button>
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Enhanced Navigation Tabs */}
-          <div className={`bg-white/60 backdrop-blur-sm rounded-2xl p-2 mb-8 shadow-sm border border-white/50 ${ac.fadeIn}`} style={{ animationDelay: '0.3s' }}>
-            <nav className="flex space-x-2" aria-label="Tabs">
-              {[
-                { id: 'overview', name: 'Overview', icon: '📊' },
-                { id: 'customers', name: 'Customers', icon: '👥' },
-                { id: 'staff', name: 'Staff', icon: '👨‍💼' },
-                { id: 'services', name: 'Services', icon: '🧺' }
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`${
-                    activeTab === tab.id
-                      ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg'
-                      : 'text-gray-600 hover:text-gray-800 hover:bg-white/50'
-                  } flex items-center space-x-2 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-300 transform hover:scale-105 relative overflow-hidden`}
-                >
-                  <span className="text-lg">{tab.icon}</span>
-                  <span className="font-semibold">{tab.name}</span>
-                  {activeTab === tab.id && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent rounded-xl"></div>
-                  )}
-                </button>
-              ))}
-            </nav>
-          </div>
-
-          {/* Main Content */}
-          {activeTab === 'overview' && renderOverview()}
-          {activeTab === 'customers' && renderCustomers()}
-          {activeTab === 'staff' && renderStaff()}
-          {activeTab === 'services' && renderServices()}
         </div>
+      </nav>
+
+      {/* Enhanced Mobile Sidebar */}
+      <div className={`fixed inset-0 z-50 lg:hidden ${isSidebarOpen ? 'block' : 'hidden'}`}>
+        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" onClick={() => setIsSidebarOpen(false)}></div>
+        <div className={`fixed inset-y-0 left-0 w-64 bg-white/95 backdrop-blur-xl border-r border-gray-200/50 shadow-2xl transform transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          <div className="h-full flex flex-col py-6 px-4">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Owner Menu</h2>
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                className="p-2 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-white/60 transition-all duration-200"
+              >
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex flex-col space-y-2">
+              <button 
+                onClick={() => { setActiveTab('overview'); setIsSidebarOpen(false); }}
+                className="flex items-center space-x-3 text-gray-700 hover:text-blue-600 hover:bg-blue-50/80 py-3 px-4 rounded-xl transition-all duration-200 backdrop-blur-sm"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <span>Overview</span>
+              </button>
+              <button 
+                onClick={() => { setActiveTab('customers'); setIsSidebarOpen(false); }}
+                className="flex items-center space-x-3 text-gray-700 hover:text-blue-600 hover:bg-blue-50/80 py-3 px-4 rounded-xl transition-all duration-200 backdrop-blur-sm"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <span>Customers</span>
+              </button>
+              <button 
+                onClick={() => { setActiveTab('staff'); setIsSidebarOpen(false); }}
+                className="flex items-center space-x-3 text-gray-700 hover:text-blue-600 hover:bg-blue-50/80 py-3 px-4 rounded-xl transition-all duration-200 backdrop-blur-sm"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                <span>Staff</span>
+              </button>
+              <button 
+                onClick={() => { setActiveTab('services'); setIsSidebarOpen(false); }}
+                className="flex items-center space-x-3 text-gray-700 hover:text-blue-600 hover:bg-blue-50/80 py-3 px-4 rounded-xl transition-all duration-200 backdrop-blur-sm"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <span>Services</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+        {/* Enhanced Header */}
+        <div className={`mb-8 ${ac.fadeIn}`}>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+                Owner Dashboard 👑
+              </h1>
+              <p className="text-gray-600 text-lg">
+                Welcome back, {user?.name}! Here's your business overview
+              </p>
+            </div>
+            <div className="mt-4 md:mt-0">
+              <div className="flex items-center space-x-3">
+                <div className="hidden md:flex items-center space-x-2 bg-white/80 backdrop-blur-sm rounded-xl px-4 py-2 shadow-sm">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm font-medium text-gray-700">System Online</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        {activeTab === 'overview' && renderOverview()}
+        {activeTab === 'customers' && renderCustomers()}
+        {activeTab === 'staff' && renderStaff()}
+        {activeTab === 'services' && renderServices()}
       </main>
     </div>
   );

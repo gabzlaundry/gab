@@ -232,10 +232,7 @@ export function validateAndFormatPhone(phone: string): { isValid: boolean; forma
 // Address validation for Lagos State
 export function validateLagosAddress(address: string): { isValid: boolean; lga?: string } {
   const lagosLGAs = [
-    'Agege', 'Ajeromi-Ifelodun', 'Alimosho', 'Amuwo-Odofin', 'Apapa',
-    'Badagry', 'Epe', 'Eti Osa', 'Ibeju-Lekki', 'Ifako-Ijaaye',
-    'Ikeja', 'Ikorodu', 'Kosofe', 'Lagos Island', 'Lagos Mainland',
-    'Mushin', 'Ojo', 'Oshodi-Isolo', 'Shomolu', 'Surulere'
+    'Ajah', 'Abraham Adesanya', 'Sangotedo', 'United Estate', 'GRA', 'Fara park Estate', 'Thomas Estate', 'Ibeju lekki', 'Awoyaya', 'Ogidan', 'Eleko', 'Dangote refinery', 'Lagos Island', 'Lagos Mainland', 'Ikeja', 'Victoria Island', 'Lekki', 'Surulere', 'Yaba', 'Ikoyi', 'sangotedo'  
   ];
   
   const lowerAddress = address.toLowerCase();

@@ -33,9 +33,7 @@ function ServiceManagementPage() {
   });
 
   const lagosAreas = [
-    'Lagos Island', 'Victoria Island', 'Ikoyi', 'Lekki', 'Ikeja', 
-    'Surulere', 'Yaba', 'Gbagada', 'Magodo', 'Ojodu', 'Alaba', 
-    'Festac', 'Isolo', 'Mushin', 'Oshodi', 'Apapa'
+    'Ajah', 'Abraham Adesanya', 'Sangotedo', 'United Estate', 'GRA', 'Fara park Estate', 'Thomas Estate', 'Ibeju lekki', 'Awoyaya', 'Ogidan', 'Eleko', 'Dangote refinery', 'Lagos Island', 'Lagos Mainland', 'Ikeja', 'Victoria Island', 'Lekki', 'Surulere', 'Yaba', 'Ikoyi', 'sangotedo'
   ];
 
   const getServiceIcon = (type: ServiceType) => {
