@@ -63,6 +63,22 @@ export const userRegistrationSchema = z.object({
 //   referredBy: z.string().optional()
 });
 
+// Walk-in Customer Schema (staff-created profile, no login credentials)
+export const walkInCustomerSchema = z.object({
+  firstName: z.string()
+    .min(2, 'First name must be at least 2 characters')
+    .max(50, 'First name must not exceed 50 characters')
+    .regex(/^[a-zA-Z\s'-]+$/, 'First name can only contain letters, spaces, hyphens, and apostrophes'),
+  lastName: z.string()
+    .min(2, 'Last name must be at least 2 characters')
+    .max(50, 'Last name must not exceed 50 characters')
+    .regex(/^[a-zA-Z\s'-]+$/, 'Last name can only contain letters, spaces, hyphens, and apostrophes'),
+  phone: z.string()
+    .regex(NIGERIAN_PHONE_REGEX, 'Invalid Nigerian phone number format. Use 0XXXXXXXXXX'),
+  isWhatsApp: z.boolean().default(false),
+  notes: z.string().max(1000).optional()
+});
+
 // Login Schema
 export const loginSchema = z.object({
   email: z.string().email('Invalid email address').toLowerCase(),

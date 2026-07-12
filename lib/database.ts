@@ -1,5 +1,6 @@
 import { ID, Query } from 'appwrite';
 import { databases, appwriteConfig } from './appwrite';
+import { mapAppwriteDocToUser } from './auth';
 import {
   User,
   Service,
@@ -766,7 +767,7 @@ export class DatabaseService {
 
       return {
         success: true,
-        data: response.documents as User[]
+        data: response.documents.map(mapAppwriteDocToUser)
       };
     } catch (error: any) {
       return {

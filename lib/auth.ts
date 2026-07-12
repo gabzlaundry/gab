@@ -1,19 +1,60 @@
-import { ID, Models } from 'appwrite';
+import { ID, Models, Query } from 'appwrite';
 import { account, databases, appwriteConfig } from './appwrite';
-import { 
-  User, 
-  AdminUser, 
-  AuthUser, 
-  LoginCredentials, 
-  RegisterCredentials, 
+import {
+  User,
+  AdminUser,
+  AuthUser,
+  LoginCredentials,
+  RegisterCredentials,
   UserRole,
-  ApiResponse 
+  ApiResponse
 } from './types';
-import { 
-  userRegistrationSchema, 
-  loginSchema, 
-  validateNigerianPhone 
+import {
+  userRegistrationSchema,
+  walkInCustomerSchema,
+  loginSchema,
+  validateNigerianPhone
 } from './validations';
+
+// Maps a raw Appwrite `users` document (flat phone string, JSON-string addresses)
+// to the nested `User` shape used throughout the app.
+export function mapAppwriteDocToUser(rawDoc: any): User {
+  let addresses = [];
+  try {
+    addresses = JSON.parse(rawDoc.addresses || '[]');
+  } catch (e) {
+    addresses = [];
+  }
+
+  return {
+    $id: rawDoc.$id,
+    $collectionId: rawDoc.$collectionId,
+    $databaseId: rawDoc.$databaseId,
+    $createdAt: rawDoc.$createdAt,
+    $updatedAt: rawDoc.$updatedAt,
+    $permissions: rawDoc.$permissions,
+    email: rawDoc.email,
+    firstName: rawDoc.firstName,
+    lastName: rawDoc.lastName,
+    phone: {
+      number: rawDoc.phone || '',
+      isWhatsApp: rawDoc.isWhatsAppNumber || false
+    },
+    addresses: addresses,
+    dateOfBirth: rawDoc.dateOfBirth,
+    gender: rawDoc.gender,
+    isActive: rawDoc.isActive,
+    emailVerified: rawDoc.emailVerified,
+    phoneVerified: rawDoc.phoneVerified,
+    totalOrders: rawDoc.totalOrders || 0,
+    totalSpent: rawDoc.totalSpent || 0,
+    loyaltyPoints: rawDoc.loyaltyPoints || 0,
+    preferredPaymentMethod: rawDoc.preferredPaymentMethod,
+    notes: rawDoc.notes,
+    registrationSource: rawDoc.registrationSource || 'web',
+    referredBy: rawDoc.referredBy
+  };
+}
 
 // Authentication service for Gab'z Laundromat
 export class AuthService {
@@ -335,51 +376,118 @@ export class AuthService {
         userId
       );
 
-      // Convert Appwrite format back to our User type
-      let addresses = [];
-      try {
-        addresses = JSON.parse(rawProfile.addresses || '[]');
-      } catch (e) {
-        addresses = [];
-      }
-
-      const userProfile: User = {
-        $id: rawProfile.$id,
-        $collectionId: rawProfile.$collectionId,
-        $databaseId: rawProfile.$databaseId,
-        $createdAt: rawProfile.$createdAt,
-        $updatedAt: rawProfile.$updatedAt,
-        $permissions: rawProfile.$permissions,
-        email: rawProfile.email,
-        firstName: rawProfile.firstName,
-        lastName: rawProfile.lastName,
-        phone: {
-          number: rawProfile.phone || '',
-          isWhatsApp: rawProfile.isWhatsAppNumber || false
-        },
-        addresses: addresses,
-        dateOfBirth: rawProfile.dateOfBirth,
-        gender: rawProfile.gender,
-        isActive: rawProfile.isActive,
-        emailVerified: rawProfile.emailVerified,
-        phoneVerified: rawProfile.phoneVerified,
-        totalOrders: rawProfile.totalOrders || 0,
-        totalSpent: rawProfile.totalSpent || 0,
-        loyaltyPoints: rawProfile.loyaltyPoints || 0,
-        preferredPaymentMethod: rawProfile.preferredPaymentMethod,
-        notes: rawProfile.notes,
-        registrationSource: rawProfile.registrationSource || 'web',
-        referredBy: rawProfile.referredBy
-      };
-
       return {
         success: true,
-        data: userProfile
+        data: mapAppwriteDocToUser(rawProfile)
       };
     } catch (error: any) {
       return {
         success: false,
         error: 'Failed to fetch user profile'
+      };
+    }
+  }
+
+  // Look up a customer by phone number (used by staff for walk-in lookups)
+  async getUserByPhone(phone: string): Promise<ApiResponse<User | null>> {
+    try {
+      const response = await databases.listDocuments(
+        appwriteConfig.databaseId,
+        appwriteConfig.collections.users,
+        [Query.equal('phone', phone), Query.limit(1)]
+      );
+
+      if (response.documents.length === 0) {
+        return {
+          success: true,
+          data: null
+        };
+      }
+
+      return {
+        success: true,
+        data: mapAppwriteDocToUser(response.documents[0])
+      };
+    } catch (error: any) {
+      console.error('Phone lookup error:', error);
+      return {
+        success: false,
+        error: 'Failed to search for customer'
+      };
+    }
+  }
+
+  // Create a walk-in customer profile (staff-created, no Appwrite Auth account/login)
+  async createWalkInCustomer(input: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    isWhatsApp?: boolean;
+    notes?: string;
+  }): Promise<ApiResponse<User>> {
+    try {
+      const validationResult = walkInCustomerSchema.safeParse(input);
+      if (!validationResult.success) {
+        return {
+          success: false,
+          error: validationResult.error.errors[0].message
+        };
+      }
+
+      if (!validateNigerianPhone(input.phone)) {
+        return {
+          success: false,
+          error: 'Invalid Nigerian phone number format. Use 0XXXXXXXXXX'
+        };
+      }
+
+      // Walk-ins don't have an email; synthesize a unique placeholder from
+      // their (unique) phone number so the required/unique `email` attribute
+      // is still satisfied without creating an Appwrite Auth account.
+      const digitsOnly = input.phone.replace(/\D/g, '');
+      const syntheticEmail = `${digitsOnly}@walkin.gabzlaundromat.local`;
+
+      const userProfile = {
+        email: syntheticEmail,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        phone: input.phone,
+        isWhatsAppNumber: input.isWhatsApp ?? false,
+        addresses: '[]',
+        isActive: true,
+        emailVerified: false,
+        phoneVerified: false,
+        totalOrders: 0,
+        totalSpent: 0,
+        loyaltyPoints: 0,
+        registrationSource: 'web',
+        notes: input.notes,
+        role: 'customer'
+      };
+
+      const doc = await databases.createDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.collections.users,
+        ID.unique(),
+        userProfile
+      );
+
+      return {
+        success: true,
+        data: mapAppwriteDocToUser(doc),
+        message: 'Walk-in customer created successfully'
+      };
+    } catch (error: any) {
+      console.error('Walk-in customer creation error:', error);
+      if (error?.code === 409) {
+        return {
+          success: false,
+          error: 'A customer with this phone number already exists'
+        };
+      }
+      return {
+        success: false,
+        error: error.message || 'Failed to create walk-in customer'
       };
     }
   }

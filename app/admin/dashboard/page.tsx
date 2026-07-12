@@ -335,6 +335,22 @@ function AdminDashboardPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             <Link
+              href="/admin/orders/new"
+              className="group p-4 md:p-6 border border-gray-200 rounded-xl hover:border-green-300 hover:bg-green-50/50 transition-all duration-300 transform hover:-translate-y-1"
+            >
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-green-100 to-green-200 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 group-hover:text-green-600 transition-colors">New Order</h3>
+                  <p className="text-sm text-gray-600">Create a walk-in customer order</p>
+                </div>
+              </div>
+            </Link>
+            <Link
               href="/admin/orders"
               className="group p-4 md:p-6 border border-gray-200 rounded-xl hover:border-blue-300 hover:bg-blue-50/50 transition-all duration-300 transform hover:-translate-y-1"
             >

@@ -18,9 +18,9 @@ interface CustomerWithStats extends User {
 }
 
 export default function AdminCustomersPage() {
-  const { user, isAuthenticated, userRole } = useAuth();
+  const { user, isAuthenticated, isAdmin } = useAuth();
   const router = useRouter();
-  
+
   const [customers, setCustomers] = useState<CustomerWithStats[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<CustomerWithStats[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -28,13 +28,13 @@ export default function AdminCustomersPage() {
   const [sortBy, setSortBy] = useState<'name' | 'orders' | 'spent' | 'recent'>('name');
 
   useEffect(() => {
-    if (!isAuthenticated || userRole !== 'admin') {
+    if (!isAuthenticated || !isAdmin) {
       router.push('/admin/login');
       return;
     }
 
     loadCustomers();
-  }, [isAuthenticated, userRole, router]);
+  }, [isAuthenticated, isAdmin, router]);
 
   useEffect(() => {
     filterAndSortCustomers();
@@ -143,7 +143,7 @@ export default function AdminCustomersPage() {
     return phone.replace(/(\+234)(\d{3})(\d{4})(\d{4})/, '$1 $2 $3 $4');
   };
 
-  if (!isAuthenticated || userRole !== 'admin') {
+  if (!isAuthenticated || !isAdmin) {
     return null;
   }
 
