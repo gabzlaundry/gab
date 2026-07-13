@@ -41,6 +41,18 @@ function normalizePhone(raw: string): string {
   return digits;
 }
 
+// Guards against records with missing/null name fields (e.g. a stray
+// non-customer account in the users collection) so one bad record can't
+// crash the whole list render.
+function customerDisplayName(customer: { firstName?: string | null; lastName?: string | null }): string {
+  const name = `${customer.firstName || ''} ${customer.lastName || ''}`.trim();
+  return name || 'Unnamed customer';
+}
+
+function customerInitial(customer: { firstName?: string | null }): string {
+  return (customer.firstName || '?').charAt(0).toUpperCase();
+}
+
 const PAYMENT_METHODS: Array<{ method: PaymentMethod; label: string }> = [
   { method: PaymentMethod.CASH, label: 'Cash' },
   { method: PaymentMethod.POS, label: 'POS' },
@@ -102,12 +114,12 @@ function NewManualOrderPage() {
     const query = searchQuery.trim().toLowerCase();
     const list = query
       ? allCustomers.filter(c =>
-          `${c.firstName} ${c.lastName}`.toLowerCase().includes(query) ||
-          c.phone.number.includes(searchQuery.trim())
+          customerDisplayName(c).toLowerCase().includes(query) ||
+          (c.phone?.number || '').includes(searchQuery.trim())
         )
       : allCustomers;
     return [...list].sort((a, b) =>
-      `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)
+      customerDisplayName(a).localeCompare(customerDisplayName(b))
     );
   })();
 
@@ -314,7 +326,7 @@ function NewManualOrderPage() {
         deliveryType,
         requestedDateTime: requestedDateTime || new Date().toISOString(),
         paymentMethod,
-        contactNumber: selectedCustomer.phone.number,
+        contactNumber: selectedCustomer.phone?.number || '',
         customerNotes: customerNotes || undefined,
         ...(deliveryType === DeliveryType.DELIVERY && {
           pickupAddress,
@@ -523,13 +535,13 @@ function NewManualOrderPage() {
                     >
                       <div className="flex items-center space-x-3">
                         <div className="w-9 h-9 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full flex items-center justify-center font-semibold text-sm">
-                          {customer.firstName.charAt(0).toUpperCase()}
+                          {customerInitial(customer)}
                         </div>
                         <div>
                           <p className="font-medium text-gray-900">
-                            {customer.firstName} {customer.lastName}
+                            {customerDisplayName(customer)}
                           </p>
-                          <p className="text-sm text-gray-600">{customer.phone.number}</p>
+                          <p className="text-sm text-gray-600">{customer.phone?.number || '—'}</p>
                         </div>
                       </div>
                       <svg className="w-5 h-5 text-gray-300 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -559,13 +571,13 @@ function NewManualOrderPage() {
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full flex items-center justify-center font-semibold text-lg">
-                  {viewingCustomer.firstName.charAt(0).toUpperCase()}
+                  {customerInitial(viewingCustomer)}
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900 text-lg">
-                    {viewingCustomer.firstName} {viewingCustomer.lastName}
+                    {customerDisplayName(viewingCustomer)}
                   </p>
-                  <p className="text-sm text-gray-600">{viewingCustomer.phone.number}</p>
+                  <p className="text-sm text-gray-600">{viewingCustomer.phone?.number || '—'}</p>
                 </div>
               </div>
               {viewingCustomerOrders.length > 0 && (
@@ -657,7 +669,7 @@ function NewManualOrderPage() {
               <div>
                 <p className="text-sm text-gray-500">Building order for</p>
                 <p className="font-semibold text-gray-900">
-                  {selectedCustomer.firstName} {selectedCustomer.lastName} · {selectedCustomer.phone.number}
+                  {customerDisplayName(selectedCustomer)} · {selectedCustomer.phone?.number || '—'}
                 </p>
               </div>
               <button onClick={changeCustomer} className="text-sm text-blue-600 hover:text-blue-700">
@@ -984,8 +996,8 @@ function NewManualOrderPage() {
                         metadata: {
                           orderId: 'temp-order-id',
                           customerId: selectedCustomer.$id,
-                          customerName: `${selectedCustomer.firstName} ${selectedCustomer.lastName}`,
-                          phoneNumber: selectedCustomer.phone.number
+                          customerName: customerDisplayName(selectedCustomer),
+                          phoneNumber: selectedCustomer.phone?.number || ''
                         },
                         callback_url: `${window.location.origin}/payment/callback`
                       }}
@@ -1019,7 +1031,7 @@ function NewManualOrderPage() {
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Order Created</h2>
             <p className="text-gray-600 mb-1">Order #{createdOrder.orderNumber}</p>
             <p className="text-gray-600 mb-6">
-              {selectedCustomer.firstName} {selectedCustomer.lastName} · {formatNairaFromKobo(createdOrder.finalAmount)}
+              {customerDisplayName(selectedCustomer)} · {formatNairaFromKobo(createdOrder.finalAmount)}
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               <button
