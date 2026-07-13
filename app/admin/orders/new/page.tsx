@@ -15,7 +15,7 @@ import {
   DeliveryType,
   NigerianAddress
 } from '@/lib/types';
-import { formatNairaFromKobo, validateNigerianPhone } from '@/lib/validations';
+import { formatNairaFromKobo } from '@/lib/validations';
 import { PaystackButton } from '@/components/PaystackPayment';
 import { animationClasses as ac, responsiveClasses as rc } from '@/lib/animations';
 
@@ -27,8 +27,6 @@ interface ServiceSelection {
 }
 
 type Phase = 'search' | 'builder' | 'success';
-type SearchMode = 'phone' | 'name';
-type SearchStatus = 'idle' | 'searching' | 'found' | 'multiple' | 'not-found' | 'error';
 
 // Turns "0801 234 5678", "+234801...", "234801..." into the local 0XXXXXXXXXX
 // shape this branch's NIGERIAN_PHONE_REGEX (and the phone index) expects.
@@ -65,19 +63,20 @@ function NewManualOrderPage() {
     });
   }, []);
 
-  // ----- Phase A: find or create the customer -----
   const [phase, setPhase] = useState<Phase>('search');
-  const [searchMode, setSearchMode] = useState<SearchMode>('phone');
-  const [phoneInput, setPhoneInput] = useState('');
-  const [nameInput, setNameInput] = useState('');
-  const [searchStatus, setSearchStatus] = useState<SearchStatus>('idle');
-  const [searchError, setSearchError] = useState('');
-  const [foundCustomer, setFoundCustomer] = useState<User | null>(null);
-  const [nameResults, setNameResults] = useState<User[]>([]);
-  const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
+
+  // ----- Phase A: browse/find or create the customer -----
+  const [allCustomers, setAllCustomers] = useState<User[]>([]);
+  const [customersLoading, setCustomersLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const [viewingCustomer, setViewingCustomer] = useState<User | null>(null);
+  const [viewingCustomerOrders, setViewingCustomerOrders] = useState<Order[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
   const [isRepeatingOrder, setIsRepeatingOrder] = useState(false);
   const [skippedItemCount, setSkippedItemCount] = useState(0);
 
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const [newCustomerForm, setNewCustomerForm] = useState({
     firstName: '',
     lastName: '',
@@ -89,6 +88,28 @@ function NewManualOrderPage() {
   const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
 
   const [selectedCustomer, setSelectedCustomer] = useState<User | null>(null);
+
+  useEffect(() => {
+    databaseService.getAllUsers().then(response => {
+      if (response.success && response.data) {
+        setAllCustomers(response.data);
+      }
+      setCustomersLoading(false);
+    });
+  }, []);
+
+  const filteredCustomers = (() => {
+    const query = searchQuery.trim().toLowerCase();
+    const list = query
+      ? allCustomers.filter(c =>
+          `${c.firstName} ${c.lastName}`.toLowerCase().includes(query) ||
+          c.phone.number.includes(searchQuery.trim())
+        )
+      : allCustomers;
+    return [...list].sort((a, b) =>
+      `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)
+    );
+  })();
 
   // ----- Phase B: the order itself -----
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -104,101 +125,21 @@ function NewManualOrderPage() {
   const [submitError, setSubmitError] = useState('');
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
 
-  const selectFoundCustomer = async (customer: User) => {
-    setFoundCustomer(customer);
-    setNameResults([]);
-    setSearchStatus('found');
+  const viewCustomerProfile = async (customer: User) => {
+    setViewingCustomer(customer);
+    setViewingCustomerOrders([]);
+    setOrdersLoading(true);
 
     const ordersResponse = await databaseService.getOrdersByCustomer(customer.$id);
     if (ordersResponse.success && ordersResponse.data) {
-      setCustomerOrders(ordersResponse.data);
+      setViewingCustomerOrders(ordersResponse.data);
     }
+    setOrdersLoading(false);
   };
 
-  const handleSearchByPhone = async () => {
-    const normalized = normalizePhone(phoneInput);
-    if (!validateNigerianPhone(normalized)) {
-      setSearchStatus('error');
-      setSearchError('Enter a valid Nigerian phone number, e.g. 0801 234 5678');
-      return;
-    }
-
-    setSearchStatus('searching');
-    setSearchError('');
-    setFoundCustomer(null);
-    setCustomerOrders([]);
-
-    const response = await authService.getUserByPhone(normalized);
-    if (!response.success) {
-      setSearchStatus('error');
-      setSearchError(response.error || 'Search failed');
-      return;
-    }
-
-    if (!response.data) {
-      setSearchStatus('not-found');
-      setNewCustomerForm(prev => ({ ...prev, phone: normalized }));
-      return;
-    }
-
-    await selectFoundCustomer(response.data);
-  };
-
-  // Name search has no unique index to query against, so this fetches the
-  // customer list and filters client-side. Fine at current customer volume;
-  // would need a real fulltext index + server-side search if that list grows a lot.
-  const handleSearchByName = async () => {
-    const query = nameInput.trim();
-    if (query.length < 2) {
-      setSearchStatus('error');
-      setSearchError('Enter at least 2 characters to search by name');
-      return;
-    }
-
-    setSearchStatus('searching');
-    setSearchError('');
-    setFoundCustomer(null);
-    setCustomerOrders([]);
-    setNameResults([]);
-
-    const response = await databaseService.getAllUsers();
-    if (!response.success || !response.data) {
-      setSearchStatus('error');
-      setSearchError(response.error || 'Search failed');
-      return;
-    }
-
-    const queryLower = query.toLowerCase();
-    const matches = response.data.filter(u =>
-      `${u.firstName} ${u.lastName}`.toLowerCase().includes(queryLower)
-    );
-
-    if (matches.length === 0) {
-      setSearchStatus('not-found');
-      const [first, ...rest] = query.split(' ');
-      setNewCustomerForm(prev => ({
-        ...prev,
-        firstName: first || '',
-        lastName: rest.join(' ')
-      }));
-      return;
-    }
-
-    if (matches.length === 1) {
-      await selectFoundCustomer(matches[0]);
-      return;
-    }
-
-    setNameResults(matches);
-    setSearchStatus('multiple');
-  };
-
-  const handleSearch = () => {
-    if (searchMode === 'phone') {
-      handleSearchByPhone();
-    } else {
-      handleSearchByName();
-    }
+  const backToList = () => {
+    setViewingCustomer(null);
+    setViewingCustomerOrders([]);
   };
 
   const enterBuilder = (customer: User) => {
@@ -208,9 +149,25 @@ function NewManualOrderPage() {
     setPhase('builder');
   };
 
-  const handleConfirmFoundCustomer = () => {
-    if (!foundCustomer) return;
-    enterBuilder(foundCustomer);
+  // Best-effort guess at whether the typed search query looks like a phone
+  // number or a name, so the "create profile" form starts pre-filled.
+  const openCreateForm = () => {
+    const query = searchQuery.trim();
+    const digitCount = (query.match(/\d/g) || []).length;
+    if (query && digitCount >= 6) {
+      setNewCustomerForm(prev => ({ ...prev, phone: normalizePhone(query) }));
+    } else if (query) {
+      const [first, ...rest] = query.split(' ');
+      setNewCustomerForm(prev => ({ ...prev, firstName: first || '', lastName: rest.join(' ') }));
+    }
+    setCreateError('');
+    setShowCreateForm(true);
+  };
+
+  const closeCreateForm = () => {
+    setShowCreateForm(false);
+    setCreateError('');
+    setNewCustomerForm({ firstName: '', lastName: '', phone: '', isWhatsApp: false, notes: '' });
   };
 
   const handleCreateWalkInCustomer = async () => {
@@ -230,6 +187,8 @@ function NewManualOrderPage() {
         return;
       }
 
+      setAllCustomers(prev => [response.data as User, ...prev]);
+      setShowCreateForm(false);
       enterBuilder(response.data);
     } finally {
       setIsCreatingCustomer(false);
@@ -237,8 +196,8 @@ function NewManualOrderPage() {
   };
 
   const handleRepeatLastOrder = async () => {
-    if (customerOrders.length === 0) return;
-    const lastOrder = customerOrders[0];
+    if (!viewingCustomer || viewingCustomerOrders.length === 0) return;
+    const lastOrder = viewingCustomerOrders[0];
 
     setIsRepeatingOrder(true);
     try {
@@ -268,9 +227,7 @@ function NewManualOrderPage() {
       setPickupAddress(lastOrder.pickupAddress);
       setDeliveryAddress(lastOrder.deliveryAddress);
 
-      if (foundCustomer) {
-        enterBuilder(foundCustomer);
-      }
+      enterBuilder(viewingCustomer);
     } finally {
       setIsRepeatingOrder(false);
     }
@@ -278,14 +235,9 @@ function NewManualOrderPage() {
 
   const changeCustomer = () => {
     setPhase('search');
-    setSearchMode('phone');
-    setPhoneInput('');
-    setNameInput('');
-    setSearchStatus('idle');
-    setSearchError('');
-    setFoundCustomer(null);
-    setNameResults([]);
-    setCustomerOrders([]);
+    setSearchQuery('');
+    backToList();
+    closeCreateForm();
     setSelectedCustomer(null);
     resetOrderBuilder();
   };
@@ -432,159 +384,40 @@ function NewManualOrderPage() {
       </div>
 
       <div className={`${rc.container} py-6 md:py-8`}>
-        {/* ---------------- Phase A: find/create customer ---------------- */}
-        {phase === 'search' && (
+        {/* ---------------- Phase A: browse/find or create the customer ---------------- */}
+        {phase === 'search' && !viewingCustomer && (
           <div className={`bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-white/20 ${ac.fadeIn}`}>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Find Customer</h2>
-
-            <div className="flex gap-2 mb-3">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Find Customer</h2>
               <button
-                onClick={() => { setSearchMode('phone'); setSearchStatus('idle'); setSearchError(''); }}
-                className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
-                  searchMode === 'phone' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                onClick={openCreateForm}
+                className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
               >
-                By Phone
-              </button>
-              <button
-                onClick={() => { setSearchMode('name'); setSearchStatus('idle'); setSearchError(''); }}
-                className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
-                  searchMode === 'name' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                By Name
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                New Customer
               </button>
             </div>
 
-            <div className="flex gap-3">
-              {searchMode === 'phone' ? (
-                <input
-                  type="tel"
-                  value={phoneInput}
-                  onChange={(e) => setPhoneInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  placeholder="Phone number, e.g. 0801 234 5678"
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                />
-              ) : (
+            {!showCreateForm && (
+              <div className="relative mb-4">
+                <svg className="w-5 h-5 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
                 <input
                   type="text"
-                  value={nameInput}
-                  onChange={(e) => setNameInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  placeholder="Customer name, e.g. Chidinma Okeke"
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Filter by name or phone..."
+                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 />
-              )}
-              <button
-                onClick={handleSearch}
-                disabled={
-                  searchStatus === 'searching' ||
-                  (searchMode === 'phone' ? !phoneInput : !nameInput)
-                }
-                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl font-medium shadow-md hover:shadow-lg transition-all duration-300"
-              >
-                {searchStatus === 'searching' ? 'Searching...' : 'Search'}
-              </button>
-            </div>
-            {searchStatus === 'error' && (
-              <p className="mt-3 text-sm text-red-600">{searchError}</p>
-            )}
-
-            {/* Multiple name matches: pick one */}
-            {searchStatus === 'multiple' && (
-              <div className="mt-6 border border-gray-200 rounded-xl divide-y divide-gray-100 overflow-hidden">
-                {nameResults.map((candidate) => (
-                  <button
-                    key={candidate.$id}
-                    onClick={() => selectFoundCustomer(candidate)}
-                    className="w-full text-left p-4 hover:bg-gray-50 transition-colors flex items-center justify-between"
-                  >
-                    <div>
-                      <p className="font-medium text-gray-900">
-                        {candidate.firstName} {candidate.lastName}
-                      </p>
-                      <p className="text-sm text-gray-600">{candidate.phone.number}</p>
-                    </div>
-                    <span className="text-sm text-blue-600">Select</span>
-                  </button>
-                ))}
               </div>
             )}
 
-            {/* Found: show profile + history */}
-            {searchStatus === 'found' && foundCustomer && (
-              <div className="mt-6 border border-green-200 bg-green-50 rounded-2xl p-5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full flex items-center justify-center font-semibold">
-                      {foundCustomer.firstName.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-900">
-                        {foundCustomer.firstName} {foundCustomer.lastName}
-                      </p>
-                      <p className="text-sm text-gray-600">{foundCustomer.phone.number}</p>
-                    </div>
-                  </div>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                    Returning customer
-                  </span>
-                </div>
-
-                <div className="mt-4 grid grid-cols-3 gap-3 text-sm">
-                  <div className="bg-white rounded-xl p-3 text-center">
-                    <p className="text-gray-500">Orders</p>
-                    <p className="font-semibold text-gray-900">{customerOrders.length}</p>
-                  </div>
-                  <div className="bg-white rounded-xl p-3 text-center">
-                    <p className="text-gray-500">Total Spent</p>
-                    <p className="font-semibold text-gray-900">
-                      {formatNairaFromKobo(customerOrders.reduce((sum, o) => sum + o.finalAmount, 0))}
-                    </p>
-                  </div>
-                  <div className="bg-white rounded-xl p-3 text-center">
-                    <p className="text-gray-500">Last Order</p>
-                    <p className="font-semibold text-gray-900">
-                      {customerOrders[0]
-                        ? new Date(customerOrders[0].$createdAt).toLocaleDateString('en-NG', { month: 'short', day: 'numeric' })
-                        : '—'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-5 flex flex-wrap gap-3">
-                  <button
-                    onClick={handleConfirmFoundCustomer}
-                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-5 py-2 rounded-xl font-medium shadow-md hover:shadow-lg transition-all duration-300"
-                  >
-                    Start New Order
-                  </button>
-                  {customerOrders.length > 0 && (
-                    <button
-                      onClick={handleRepeatLastOrder}
-                      disabled={isRepeatingOrder || servicesLoading}
-                      className="bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 text-gray-700 px-5 py-2 rounded-xl font-medium transition-colors"
-                    >
-                      {isRepeatingOrder ? 'Loading last order...' : 'Repeat Last Order'}
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setSearchStatus('idle')}
-                    className="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm"
-                  >
-                    Search someone else
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Not found: create profile */}
-            {searchStatus === 'not-found' && (
-              <div className="mt-6 border border-blue-200 bg-blue-50 rounded-2xl p-5">
-                <p className="font-medium text-gray-900 mb-4">
-                  No customer found with that {searchMode === 'phone' ? 'number' : 'name'} — create a new profile.
-                </p>
+            {showCreateForm ? (
+              <div className="border border-blue-200 bg-blue-50 rounded-2xl p-5">
+                <p className="font-medium text-gray-900 mb-4">New walk-in customer profile</p>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
@@ -651,14 +484,169 @@ function NewManualOrderPage() {
                     {isCreatingCustomer ? 'Creating...' : 'Create Profile & Continue'}
                   </button>
                   <button
-                    onClick={() => setSearchStatus('idle')}
+                    onClick={closeCreateForm}
                     className="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm"
                   >
-                    Back
+                    Cancel
                   </button>
                 </div>
               </div>
+            ) : customersLoading ? (
+              <div className="space-y-2">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="animate-pulse h-16 bg-gray-100 rounded-xl"></div>
+                ))}
+              </div>
+            ) : filteredCustomers.length === 0 ? (
+              <div className="text-center py-10 border border-dashed border-gray-200 rounded-xl">
+                <p className="text-gray-500 mb-3">
+                  {searchQuery ? `No customer matches "${searchQuery}".` : 'No customers yet.'}
+                </p>
+                <button
+                  onClick={openCreateForm}
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-5 py-2 rounded-xl font-medium shadow-md hover:shadow-lg transition-all duration-300"
+                >
+                  Create New Profile
+                </button>
+              </div>
+            ) : (
+              <div>
+                <p className="text-xs text-gray-500 mb-2">
+                  {filteredCustomers.length} customer{filteredCustomers.length !== 1 ? 's' : ''}
+                </p>
+                <div className="border border-gray-200 rounded-xl divide-y divide-gray-100 overflow-hidden max-h-[28rem] overflow-y-auto">
+                  {filteredCustomers.map((customer) => (
+                    <button
+                      key={customer.$id}
+                      onClick={() => viewCustomerProfile(customer)}
+                      className="w-full text-left p-4 hover:bg-blue-50 transition-colors flex items-center justify-between group"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-9 h-9 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full flex items-center justify-center font-semibold text-sm">
+                          {customer.firstName.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {customer.firstName} {customer.lastName}
+                          </p>
+                          <p className="text-sm text-gray-600">{customer.phone.number}</p>
+                        </div>
+                      </div>
+                      <svg className="w-5 h-5 text-gray-300 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
+          </div>
+        )}
+
+        {/* ---------------- Phase A: customer profile ---------------- */}
+        {phase === 'search' && viewingCustomer && (
+          <div className={`bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-white/20 ${ac.fadeIn}`}>
+            <button
+              onClick={backToList}
+              className="text-sm text-blue-600 hover:text-blue-700 mb-4 flex items-center gap-1"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back to customer list
+            </button>
+
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full flex items-center justify-center font-semibold text-lg">
+                  {viewingCustomer.firstName.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900 text-lg">
+                    {viewingCustomer.firstName} {viewingCustomer.lastName}
+                  </p>
+                  <p className="text-sm text-gray-600">{viewingCustomer.phone.number}</p>
+                </div>
+              </div>
+              {viewingCustomerOrders.length > 0 && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                  Returning customer
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 text-sm mb-6">
+              <div className="bg-gray-50 rounded-xl p-3 text-center">
+                <p className="text-gray-500">Orders</p>
+                <p className="font-semibold text-gray-900">{viewingCustomerOrders.length}</p>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-3 text-center">
+                <p className="text-gray-500">Total Spent</p>
+                <p className="font-semibold text-gray-900">
+                  {formatNairaFromKobo(viewingCustomerOrders.reduce((sum, o) => sum + o.finalAmount, 0))}
+                </p>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-3 text-center">
+                <p className="text-gray-500">Last Order</p>
+                <p className="font-semibold text-gray-900">
+                  {viewingCustomerOrders[0]
+                    ? new Date(viewingCustomerOrders[0].$createdAt).toLocaleDateString('en-NG', { month: 'short', day: 'numeric' })
+                    : '—'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-3 mb-6">
+              <button
+                onClick={() => enterBuilder(viewingCustomer)}
+                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-5 py-2 rounded-xl font-medium shadow-md hover:shadow-lg transition-all duration-300"
+              >
+                Start New Order
+              </button>
+              {viewingCustomerOrders.length > 0 && (
+                <button
+                  onClick={handleRepeatLastOrder}
+                  disabled={isRepeatingOrder || servicesLoading}
+                  className="bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 text-gray-700 px-5 py-2 rounded-xl font-medium transition-colors"
+                >
+                  {isRepeatingOrder ? 'Loading last order...' : 'Repeat Last Order'}
+                </button>
+              )}
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Order History</h3>
+              {ordersLoading ? (
+                <div className="space-y-2">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="animate-pulse h-14 bg-gray-100 rounded-xl"></div>
+                  ))}
+                </div>
+              ) : viewingCustomerOrders.length === 0 ? (
+                <p className="text-sm text-gray-500">No previous orders yet.</p>
+              ) : (
+                <div className="border border-gray-200 rounded-xl divide-y divide-gray-100 overflow-hidden">
+                  {viewingCustomerOrders.map((order) => (
+                    <div key={order.$id} className="p-3 flex items-center justify-between text-sm">
+                      <div>
+                        <p className="font-medium text-gray-900">Order #{order.orderNumber}</p>
+                        <p className="text-gray-500">
+                          {new Date(order.$createdAt).toLocaleDateString('en-NG', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-gray-900">{formatNairaFromKobo(order.finalAmount)}</p>
+                        <span className="text-xs text-gray-500 capitalize">{order.status.replace('_', ' ')}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
