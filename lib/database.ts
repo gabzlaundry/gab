@@ -63,11 +63,12 @@ export class DatabaseService {
   }
 
   // Get all active services
-  async getActiveServices(area?: string): Promise<ApiResponse<Service[]>> {
+  async getActiveServices(area?: string, limit: number = 200): Promise<ApiResponse<Service[]>> {
     try {
       const queries = [
         Query.equal('isActive', true),
-        Query.orderAsc('displayOrder')
+        Query.orderAsc('displayOrder'),
+        Query.limit(limit)
       ];
 
       if (area) {
@@ -93,12 +94,13 @@ export class DatabaseService {
   }
 
   // Get services by type
-  async getServicesByType(type: ServiceType, area?: string): Promise<ApiResponse<Service[]>> {
+  async getServicesByType(type: ServiceType, area?: string, limit: number = 200): Promise<ApiResponse<Service[]>> {
     try {
       const queries = [
         Query.equal('type', type),
         Query.equal('isActive', true),
-        Query.orderAsc('displayOrder')
+        Query.orderAsc('displayOrder'),
+        Query.limit(limit)
       ];
 
       if (area) {
