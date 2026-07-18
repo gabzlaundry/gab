@@ -130,4 +130,15 @@
     size: 80mm auto;
     margin: 4mm;
   }
+
+  /* Most receipt text uses light gray (text-gray-500/600), which is fine
+     on a bright screen but reproduces as barely-visible on real printers,
+     especially thermal/receipt printers. Force solid black and stop the
+     browser from lightening colors to save ink, so the printout is
+     actually legible regardless of on-screen color choices. */
+  #receipt-content, #receipt-content * {
+    color: #000 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
 }
