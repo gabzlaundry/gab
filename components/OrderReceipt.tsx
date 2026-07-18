@@ -30,10 +30,10 @@ export default function OrderReceipt({
       : 'text-red-600';
 
   return (
-    <div className="max-w-sm mx-auto">
+    <div className="max-w-sm mx-auto print:max-w-none">
       <div
         id="receipt-content"
-        className="bg-white border border-gray-200 rounded-lg p-5 print:border-none print:shadow-none text-sm"
+        className="bg-white border border-gray-200 rounded-lg p-5 print:border-none print:shadow-none print:p-0 text-sm"
       >
         {/* Header */}
         <div className="text-center mb-3">

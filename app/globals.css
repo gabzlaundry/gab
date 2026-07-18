@@ -120,3 +120,14 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Receipt printing: size the page to the receipt instead of a full
+   letter/A4 sheet, so print/PDF output doesn't end up as tiny content
+   on a mostly-blank page. Everything else on a page should be hidden
+   for print via the `print:hidden` utility class. */
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 4mm;
+  }
+}
