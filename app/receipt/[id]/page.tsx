@@ -15,7 +15,7 @@ function ReceiptPageContent() {
   const { id } = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isAdmin } = useAuth();
   
   const [order, setOrder] = useState<Order | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
@@ -38,8 +38,10 @@ function ReceiptPageContent() {
 
       const { order, items } = orderResponse.data;
       
-      // Verify this order belongs to the current user
-      if (order.customerId !== user?.$id) {
+      // Verify this order belongs to the current user, or that staff/admin is viewing it.
+      // Walk-in customers (created by staff, no login account) can never satisfy the
+      // ownership check themselves, so staff need to be able to view any receipt.
+      if (order.customerId !== user?.$id && !isAdmin) {
         setError('Access denied');
         return;
       }
@@ -62,7 +64,7 @@ function ReceiptPageContent() {
       setIsLoading(false);
       if (showRefreshing) setIsRefreshing(false);
     }
-  }, [id, user?.$id, services.length]);
+  }, [id, user?.$id, isAdmin, services.length]);
 
   useEffect(() => {
     if (!isAuthenticated) {

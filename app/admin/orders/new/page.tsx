@@ -1044,6 +1044,12 @@ function NewManualOrderPage() {
                 Create Another Order for This Customer
               </button>
               <Link
+                href={`/receipt/${createdOrder.$id}`}
+                className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-3 rounded-xl font-medium transition-colors"
+              >
+                View / Print Receipt
+              </Link>
+              <Link
                 href={`/admin/orders/${createdOrder.$id}`}
                 className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-3 rounded-xl font-medium transition-colors"
               >
