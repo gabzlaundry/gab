@@ -7,13 +7,15 @@ interface OrderReceiptProps {
   order: Order;
   orderItems: OrderItem[];
   services: Service[];
+  customerName?: string;
   onPrint?: () => void;
 }
 
 export default function OrderReceipt({
   order,
   orderItems,
-  services
+  services,
+  customerName
 }: OrderReceiptProps) {
   const getServiceById = (serviceId: string) => {
     return services.find(s => s.$id === serviceId);
@@ -43,6 +45,12 @@ export default function OrderReceipt({
 
         {/* Order meta */}
         <div className="border-t border-b border-dashed border-gray-300 py-2 mb-3 text-xs text-gray-600">
+          {customerName && (
+            <div className="flex justify-between font-semibold text-gray-800 mb-1">
+              <span>Customer</span>
+              <span>{customerName}</span>
+            </div>
+          )}
           <div className="flex justify-between">
             <span>Receipt #{order.orderNumber}</span>
             <span>

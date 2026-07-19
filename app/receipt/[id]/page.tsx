@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/context/AuthContext';
+import { authService } from '@/lib/auth';
 import { databaseService } from '@/lib/database';
 import { Order, OrderItem, Service, PaymentStatus } from '@/lib/types';
 import OrderReceipt from '@/components/OrderReceipt';
@@ -19,6 +20,7 @@ function ReceiptPageContent() {
   const [order, setOrder] = useState<Order | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [customerName, setCustomerName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -47,6 +49,16 @@ function ReceiptPageContent() {
 
       setOrder(order);
       setOrderItems(items);
+
+      // Load the customer's name (covers both self-registered and walk-in
+      // customers, since walk-ins are real `users` documents too). Fail
+      // silently if the lookup doesn't succeed — a missing name shouldn't
+      // break the receipt.
+      const customerResponse = await authService.getUserProfile(order.customerId);
+      if (customerResponse.success && customerResponse.data) {
+        const { firstName, lastName } = customerResponse.data;
+        setCustomerName(`${firstName || ''} ${lastName || ''}`.trim());
+      }
 
       // Load services if not already loaded
       if (services.length === 0) {
@@ -266,6 +278,7 @@ function ReceiptPageContent() {
             order={order}
             orderItems={orderItems}
             services={services}
+            customerName={customerName}
             onPrint={handlePrint}
           />
         </div>
