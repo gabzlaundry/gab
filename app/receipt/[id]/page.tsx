@@ -114,10 +114,29 @@ function ReceiptPageContent() {
   // it can never drift out of sync with what's on screen) rather than
   // reconstructing the receipt in a popup with a hand-duplicated CSS subset.
   // Everything except the receipt itself is hidden for print via the
-  // `print:hidden` utility class, and `@page` sizing (see globals.css) keeps
-  // the printed page receipt-sized instead of a mostly-blank A4/Letter sheet.
+  // `print:hidden` utility class.
+  //
+  // The static `@page { size: 80mm auto; }` in globals.css relies on the
+  // `auto` height keyword, which Chrome only honors reliably when printing
+  // to "Save as PDF" — real printer drivers commonly ignore it and fall
+  // back to whatever fixed paper length they're configured with, which is
+  // what produces trailing blank paper on an actual thermal/roll printer.
+  // To make this work on real hardware, measure the receipt's real height
+  // and inject an explicit numeric `@page` size before printing.
   const handlePrint = () => {
+    const receiptEl = document.getElementById('receipt-content');
+    const style = document.createElement('style');
+
+    if (receiptEl) {
+      const heightPx = receiptEl.getBoundingClientRect().height;
+      const heightMm = Math.ceil(heightPx * 25.4 / 96) + 5; // px -> mm, plus a small buffer
+      style.textContent = `@media print { @page { size: 80mm ${heightMm}mm; margin: 4mm; } }`;
+      document.head.appendChild(style);
+    }
+
     window.print();
+
+    window.addEventListener('afterprint', () => style.remove(), { once: true });
   };
 
   if (!isAuthenticated || !user) {
